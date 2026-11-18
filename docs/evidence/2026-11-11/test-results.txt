@@ -1,0 +1,23 @@
+BandDecision 문서화 시점 재검증
+실행일: 2026-11-11
+수행자: 개발 지원 도구
+위치: D:\UNIV\2-2\JAVA\Project\BandDecision
+명령: powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test
+컴파일: javac -encoding UTF-8 -Xlint:all -d out (src 및 test의 Java 파일)
+
+실제 도구 출력 전사:
+PASS: 96 checks (candidate scheduling + songs + persistence + CLI)
+PASS: 26 Swing checks
+
+스크립트 종료 코드: 0
+이 실행에서 실패/SKIP 출력: 없음
+현재 check 합계: 122
+
+실제 환경 출력 전사:
+openjdk version "17.0.20.1" 2026-08-18
+OpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)
+OpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode, sharing)
+javac 17.0.20.1
+
+실행 로그의 설명을 더한 전사본이다. 별도의 원시 콘솔 스트림 저장 파일로 가장하지 않는다.
+이번 문서화에서는 사용자 data 파일을 변경하지 않았으며 모든 저장 검사는 임시 폴더를 사용했다.

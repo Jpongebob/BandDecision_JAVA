@@ -1,0 +1,18 @@
+2026-11-11 / Windows PowerShell / Eclipse Temurin JDK 17.0.20.1 / UTF-8
+Working directory: D:\UNIV\2-2\JAVA\Project\BandDecision
+Executed by the development assistant using temporary test data.
+Actual user files were inspected read-only; no user data modification or reset.
+
+Command: powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test
+PASS: 153 checks (candidate scheduling + songs + persistence + CLI)
+PASS: 88 Swing checks
+Exit code: 0
+
+Command: java "-Dfile.encoding=UTF-8" -cp out GuiSmokeTest --render
+PASS: 88 Swing checks
+Exit code: 0
+
+Total: 241 checks. Four regression checks added for individual completion/member switching/no file writes.
+Rendering repeats the same Swing checks and is not counted twice.
+screen-1.png inspected for SCHEDULE owner and status labels.
+Native full manual E2E and other DPI/140% remain unverified.

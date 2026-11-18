@@ -1,0 +1,13 @@
+H34 / V-20261113-01
+Baseline build.ps1 -Test: PASS 197 + 178, exit 0.
+Regression before fix: AssertionError in pendingEdits (manual save while editing), exit 1.
+After fix, source-only copy in a new path containing spaces:
+PASS: 197 checks (candidate scheduling + songs + persistence + CLI)
+PASS: 180 Swing checks
+Exit: 0
+Original project build.ps1: exit 0, no warning output.
+Copied run.ps1 -Demo from another working directory:
+First run created sample data and exited normally on 0.
+Second run loaded saved data and exited normally on 0.
+javap: major version 61.
+Native mouse E2E / another PC: not performed.

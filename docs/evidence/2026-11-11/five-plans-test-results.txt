@@ -1,0 +1,17 @@
+2026-11-11 / Windows PowerShell / Eclipse Temurin JDK 17.0.20.1 / UTF-8
+Working directory: D:\UNIV\2-2\JAVA\Project\BandDecision
+Executed by the development assistant using temporary files. No user data changes.
+
+Command: powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test
+PASS: 155 checks (candidate scheduling + songs + persistence + CLI)
+PASS: 84 Swing checks
+Exit code: 0
+
+Command: java "-Dfile.encoding=UTF-8" -cp out GuiSmokeTest --render
+PASS: 84 Swing checks
+Exit code: 0
+
+Total: 239 checks. Rendering repeats the same Swing checks, not counted twice.
+Inspected screen-1.png, screen-5.png and screen-4.png component rendering.
+Legacy v1/v2 restoration and v2 backup byte equality tested with fixtures only.
+Native GUI final edit approval/delete confirmation E2E and other DPI/140% remain unverified.
