@@ -20,9 +20,10 @@ public final class Main {
                 }
                 System.out.println("저장된 데이터를 불러왔습니다: " + store.getFile());
             } else {
-                app = demo ? DemoData.create(java.time.LocalDate.now()) : new BandDecision();
+                app = demo ? DemoData.createPresentation(java.time.LocalDate.now()) : new BandDecision();
                 store.save(app);
-                if (demo) System.out.println("[샘플 모드] 날짜 7개의 응답 42건, 곡 4개, 투표 23건을 준비했습니다.");
+                if (demo) System.out.println("[샘플 모드] 날짜 " + app.getAttendance().getDates().length
+                    + "개, 곡 " + app.getSongs().getSongs().length + "개, 확정 계획 " + app.getConfirmedPlans().length + "개를 준비했습니다.");
             }
         } catch (java.io.IOException | IllegalArgumentException e) {
             System.err.println("데이터를 열 수 없어 실행을 중단합니다. 기존 파일은 유지됩니다: " + store.getFile());

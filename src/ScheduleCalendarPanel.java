@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.function.Supplier;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultCellEditor;
 import javax.swing.JButton;
@@ -26,6 +27,7 @@ public final class ScheduleCalendarPanel extends JPanel {
     private final AttendanceService attendance;
     private final Member[] members;
     private final Runnable changed;
+    private final Supplier<ConfirmedPlan[]> plans;
     private final JButton[] days = new JButton[42];
     private final JLabel monthTitle = new JLabel("", JLabel.CENTER);
     private final JLabel detailTitle = new JLabel();
@@ -54,11 +56,15 @@ public final class ScheduleCalendarPanel extends JPanel {
     private Runnable memberSelectionListener = () -> { };
 
     public ScheduleCalendarPanel(AttendanceService attendance, Member[] members, Runnable changed) {
-        this(attendance, members, changed, null);
+        this(attendance, members, changed, null, () -> new ConfirmedPlan[0]);
     }
     public ScheduleCalendarPanel(AttendanceService attendance, Member[] members, Runnable changed, JComboBox<String> memberSelector) {
+        this(attendance, members, changed, memberSelector, () -> new ConfirmedPlan[0]);
+    }
+    public ScheduleCalendarPanel(AttendanceService attendance, Member[] members, Runnable changed,
+            JComboBox<String> memberSelector, Supplier<ConfirmedPlan[]> plans) {
         super(new BorderLayout(0, 12));
-        this.attendance = attendance; this.members = members; this.changed = changed;
+        this.attendance = attendance; this.members = members; this.changed = changed; this.plans = plans;
         bulkMember = memberSelector == null ? new JComboBox<>() : memberSelector;
         selectedDate = LocalDate.now();
         for (LocalDate day : attendance.getDates()) if (inWindow(day)) { selectedDate = day; break; }
@@ -156,7 +162,7 @@ public final class ScheduleCalendarPanel extends JPanel {
         footer.add(action("오늘", () -> selectDate(LocalDate.now())), BorderLayout.WEST);
         footer.add(action("선택 해제", this::clearSelection), BorderLayout.EAST);
         footer.add(selectionInfo, BorderLayout.CENTER);
-        JLabel legend = new JLabel("<html>파랑 · 내 가능　빨강 · 내 불가<br>초록 · 전원 가능　✓ · 적용할 날짜</html>");
+        JLabel legend = new JLabel("<html>파랑 · 내 가능　빨강 · 내 불가<br>초록 · 전원 가능　확정 · 합주 계획　✓ · 적용할 날짜</html>");
         legend.setForeground(UiTheme.MUTED);
         JPanel footerBottom = new JPanel(new BorderLayout(0, 8)); footerBottom.setOpaque(false);
         footerBottom.add(legend, BorderLayout.CENTER);
@@ -326,6 +332,14 @@ public final class ScheduleCalendarPanel extends JPanel {
         int available = attendance.count(date, AttendanceService.AVAILABLE);
         return available == 6 ? "합주 가능" : "가능 " + available + "/6명";
     }
+    private String planSummary(LocalDate date) {
+        StringBuilder result = new StringBuilder();
+        for (ConfirmedPlan entry : plans.get()) if (entry.plan().getDate().equals(date)) {
+            if (result.length() > 0) result.append(", ");
+            result.append('#').append(entry.id());
+        }
+        return result.toString();
+    }
     public void refresh() {
         if (!finishEditing()) return;
         refreshing = true;
@@ -369,10 +383,13 @@ public final class ScheduleCalendarPanel extends JPanel {
                 LocalDate date = month.atDay(day); boolean recorded = hasDate(date);
                 boolean past = date.isBefore(LocalDate.now()); button.setEnabled(!past);
                 button.putClientProperty("date", date);
-                String label = inWindow(date) ? statusFor(date) : date.equals(LocalDate.now()) ? "오늘" : "";
+                String confirmed = planSummary(date);
+                String label = !confirmed.isEmpty() ? "합주 확정"
+                    : inWindow(date) ? statusFor(date) : date.equals(LocalDate.now()) ? "오늘" : "";
                 button.setText(day + " " + label);
                 button.putClientProperty("calendar.number", day);
                 button.putClientProperty("calendar.status", label);
+                button.putClientProperty("calendar.confirmed", !confirmed.isEmpty());
                 button.putClientProperty("calendar.selected", isSelected(date));
                 button.putClientProperty("calendar.focused", date.equals(selectedDate));
                 int mine = attendance.response(bulkMember.getSelectedIndex(), date);
@@ -384,13 +401,15 @@ public final class ScheduleCalendarPanel extends JPanel {
                 if (past) background = UiTheme.SOFT;
                 button.setBackground(background);
                 String ownResponse = members[bulkMember.getSelectedIndex()].getPart() + ": " + AttendanceService.label(mine);
-                button.setToolTipText(date + " · " + ownResponse + " · " + statusFor(date));
-                button.getAccessibleContext().setAccessibleName(date + " " + ownResponse + " " + statusFor(date));
+                String planText = confirmed.isEmpty() ? "" : " · 확정 계획 " + confirmed;
+                button.setToolTipText(date + " · " + ownResponse + " · " + statusFor(date) + planText);
+                button.getAccessibleContext().setAccessibleName(date + " " + ownResponse + " " + statusFor(date) + planText);
                 button.setForeground(recorded && inWindow(date) ? UiTheme.ACCENT : inWindow(date) ? UiTheme.INK : UiTheme.MUTED);
             }
             detailTitle.setText(selectedDate.format(DateTimeFormatter.ofPattern("M월 d일 (E)", java.util.Locale.KOREAN)));
             responses.setEnabled(inWindow(selectedDate));
-            detailStatus.setText(statusFor(selectedDate));
+            String selectedPlans = planSummary(selectedDate);
+            detailStatus.setText(statusFor(selectedDate) + (selectedPlans.isEmpty() ? "" : " · 확정 계획 " + selectedPlans));
             detailStatus.setForeground(UiTheme.ACCENT);
             guidance.setText("<html>선택 " + selectedDays.length + "일에 적용<br>표 직접 편집은 " + selectedDate.getMonthValue() + "/" + selectedDate.getDayOfMonth() + " 하루만 변경</html>");
             DefaultTableModel model = (DefaultTableModel) responses.getModel(); model.setRowCount(0);

@@ -603,6 +603,13 @@ public final class GuiSmokeTest {
                         app.confirm(day, new int[] {1, 2}, LocalDate.now(), approved, true);
                     }
                     frame.refresh();
+                    check("합주 확정".equals(dayButton(calendar, firstDay).getClientProperty("calendar.status"))
+                        && dayButton(calendar, firstDay).getToolTipText().contains("확정 계획 #3")
+                        && hasLabel(calendar, calendar.statusFor(firstDay) + " · 확정 계획 #3"),
+                        "확정 계획 날짜의 달력 표시·상세·툴팁");
+                    check("합주 확정".equals(dayButton(calendar, original.getDates()[1]).getClientProperty("calendar.status"))
+                        && !Boolean.TRUE.equals(dayButton(calendar, original.getDates()[5]).getClientProperty("calendar.confirmed")),
+                        "확정된 날짜만 표시하고 다른 날짜는 기존 상태 유지");
                     JTable plans = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "계획 ID");
                     check(plans.getRowCount() == 5 && !find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택한 날짜와 곡으로 계획 확정").isEnabled(),
                         "계획 5개 목록 표시·최대 개수 도달 시 신규 확정 비활성");
@@ -615,8 +622,14 @@ public final class GuiSmokeTest {
                     LocalDate revisedDate = original.getDates()[3];
                     RehearsalPlan revised = app.preview(revisedDate, new int[] {2}, LocalDate.now());
                     app.updatePlan(3, revisedDate, new int[] {2}, LocalDate.now(), revised, true); frame.refresh();
+                    check(dayButton(calendar, revisedDate).getToolTipText().contains("확정 계획 #3")
+                        && !dayButton(calendar, original.getDates()[2]).getToolTipText().contains("확정 계획 #3"),
+                        "계획 날짜 수정 후 달력 확정 표시 이동");
                     check(plans.getValueAt(2, 0).equals(3) && plans.getValueAt(2, 1).equals(revisedDate), "계획 수정 후 ID·표 갱신");
                     app.deletePlan(2); frame.refresh();
+                    check(!Boolean.TRUE.equals(dayButton(calendar, original.getDates()[1]).getClientProperty("calendar.confirmed"))
+                        && !dayButton(calendar, original.getDates()[1]).getToolTipText().contains("확정 계획 #2"),
+                        "계획 삭제 후 해당 날짜 확정 표시 제거");
                     check(plans.getRowCount() == 4 && plans.getValueAt(plans.getSelectedRow(), 0).equals(3), "중간 계획 삭제 후 선택 대상 ID 유지");
                     check(find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택 계획 삭제") != null, "확정 계획 삭제 버튼 제공");
                     find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "새 합주 만들기").doClick();

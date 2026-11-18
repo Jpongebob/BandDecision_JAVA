@@ -357,6 +357,19 @@ public final class AcceptanceTest {
 
     }
     public static void main(String[] args) throws Exception {
+        for (LocalDate today : new LocalDate[] {LocalDate.now(), LocalDate.of(2026, 12, 31), LocalDate.of(2028, 2, 29)}) {
+            BandDecision demo = DemoData.createPresentation(today);
+            check(demo.getSongs().getSongs().length == 8 && demo.getConfirmedPlans().length == 2,
+                "발표 샘플 8곡·2계획 생성: " + today);
+            check(demo.getAttendance().isSubmitted(0, today) && !demo.getAttendance().isSubmitted(5, today),
+                "발표 샘플 완료·미완료 비교: " + today);
+            check(demo.getAttendance().count(today.plusDays(2), AttendanceService.AVAILABLE) == 6
+                && demo.getAttendance().count(today.plusDays(4), AttendanceService.UNAVAILABLE) == 6
+                && demo.getAttendance().count(today.plusDays(6), AttendanceService.UNANSWERED) == 3,
+                "발표 샘플 전원가능·전원불가·미응답: " + today);
+            check(SongRecommender.recommend(demo.getSongs(), demo.getMembers()).length == 4,
+                "발표 샘플 추천 자격 곡 4개: " + today);
+        }
         songs(); attendance(); plans(); persistence();
         songManagement(); planManagement();
         System.out.println("PASS: " + checks + " checks (scheduling + songs + persistence)");

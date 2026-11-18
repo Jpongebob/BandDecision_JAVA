@@ -1,5 +1,27 @@
 # 검증 기록
 
+## V-20261118-04: H39 확정 계획 달력 표시
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test`: 첫 회 도메인 157개 통과 후 GUI 검사 `확정 계획 날짜의 달력 표시·상세·툴팁`에서 AssertionError, 종료 코드 1. 테스트는 선택 날짜의 계획 #3을 #1로 기대한 오류였다. 제품 로직 변경 없이 기대 ID를 바로잡았다.
+- 최종 같은 명령: `PASS: 157 checks (scheduling + songs + persistence)` / `PASS: 186 Swing checks`, 총 343개, 종료 코드 0. 추가 조건 4개는 확정/비확정 날짜, 선택 날짜·툴팁, 수정 후 표시 이동, 삭제 후 표시 제거다.
+- `java -Dfile.encoding=UTF-8 -cp out GuiSmokeTest --render`: 186 Swing checks 통과, 종료 코드 0. [달력 렌더링](evidence/2026-11-18/confirmed-calendar.png)에서 11/22 날짜 카드 '합주 확정'과 오른쪽 '확정 계획 #1'이 보이는 것을 확인했다. 이 렌더 검사는 343개에 중복 합산하지 않는다.
+- 사용자 data 파일은 변경하지 않았다. 실제 마우스 전체 흐름은 미실행이며 렌더링·컴포넌트 검사와 구분한다.
+
+## V-20261118-03: H38 -Demo 통합
+
+- Main의 --demo 생성 분기를 발표 데이터로 통합하고 두 스크립트의 Presentation 옵션을 제거했다.
+- 로컬 demo.properties를 고유 이름 .bak로 복사한 뒤 준비된 presentation.properties를 demo.properties로 복사했다. 일반 파일은 변경하지 않았다. 원래 발표 파일도 삭제하지 않았다.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test`: `PASS: 157 checks (scheduling + songs + persistence)` / `PASS: 182 Swing checks`, 총 339개, 종료 코드 0.
+- 실제 GUI를 다시 실행한 네이티브 시연은 미실행. 현재 안내는 -Demo이며 이전 별도 옵션 기록은 과거 이력이다.
+
+## V-20261118-02: H37 발표용 가상 데이터
+
+- Windows PowerShell/JDK 17, 개발 지원 도구 실행. `build.ps1 -Test` 실제 출력: `PASS: 157 checks (scheduling + songs + persistence)` / `PASS: 182 Swing checks`, 종료 코드 0. 총 339개.
+- createPresentation을 실제 기준일, 2026-12-31, 2028-02-29로 생성해 각각 8곡/2계획, 개인 완료와 미완료, 전원 가능/불가/미응답, 추천 자격 4곡 조건 검사. 12개 모두 통과.
+- 사용자가 요청한 시연 데이터를 별도 data/presentation.properties에 생성했다. 임시 준비 도구는 out에만 두고 파일이 이미 있으면 거절하도록 했다. 실제 저장·재로딩 출력 `dates=44, songs=8, plans=2`. 생성 기준일 2026-11-18. 일반 banddecision.properties와 기존 demo.properties는 수정하지 않았다.
+- 이 준비 파일은 사용자가 요청한 가상 데이터이며, 테스트 때문에 사용자 기존 저장 파일을 초기화한 것이 아니다. 파일은 git 제외 대상. 새 모드는 다음 실행에서 기존 내용을 읽는다.
+- 이번 GUI 네이티브 마우스 시연·렌더링은 미실행. 기존 과거 결과는 당시 기록이다.
+
 ## V-20261118-01: H35 GUI 전용 정리
 
 - 환경: Windows PowerShell/JDK 17, 임시 테스트 데이터. 사용자 data 및 백업 파일 변경 없음.

@@ -277,7 +277,7 @@ public final class DesktopUI extends JFrame {
 
     private JPanel schedulesPanel() {
         JPanel panel = new JPanel(new BorderLayout()); panel.setOpaque(false);
-        scheduleCalendar = new ScheduleCalendarPanel(attendance, members, this::changed, activeMember);
+        scheduleCalendar = new ScheduleCalendarPanel(attendance, members, this::changed, activeMember, app::getConfirmedPlans);
         scheduleCalendar.setMemberSelectionListener(() -> { refreshScheduleStatus(); selectVoteMember(); });
         panel.add(scheduleCalendar, BorderLayout.CENTER);
         return panel;

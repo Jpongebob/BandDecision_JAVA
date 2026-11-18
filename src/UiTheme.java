@@ -176,6 +176,7 @@ public final class UiTheme {
                 }
                 String number = String.valueOf(button.getClientProperty("calendar.number"));
                 String status = String.valueOf(button.getClientProperty("calendar.status"));
+                boolean confirmed = Boolean.TRUE.equals(button.getClientProperty("calendar.confirmed"));
                 Font numberFont = button.getFont().deriveFont(Font.BOLD);
                 Font statusFont = button.getFont().deriveFont(Font.PLAIN, Math.max(11f, button.getFont().getSize2D() * 0.72f));
                 int totalHeight = g.getFontMetrics(numberFont).getHeight() + (status.isEmpty() ? 0 : g.getFontMetrics(statusFont).getHeight());
@@ -184,7 +185,9 @@ public final class UiTheme {
                 y += g.getFontMetrics().getAscent();
                 g.drawString(number, (w - g.getFontMetrics().stringWidth(number)) / 2, y);
                 if (!status.isEmpty()) {
-                    y += g.getFontMetrics().getDescent(); g.setFont(statusFont); y += g.getFontMetrics().getAscent();
+                    y += g.getFontMetrics().getDescent(); g.setFont(statusFont);
+                    g.setColor(confirmed && button.isEnabled() ? new Color(18, 112, 91) : button.getForeground());
+                    y += g.getFontMetrics().getAscent();
                     g.drawString(status, (w - g.getFontMetrics().stringWidth(status)) / 2, y);
                 }
                 if (selected) {
