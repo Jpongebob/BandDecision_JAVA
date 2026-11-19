@@ -53,10 +53,10 @@ def inline(paragraph, text, small=False):
     last = 0
     for match in INLINE.finditer(text):
         if match.start() > last:
-            font(paragraph.add_run(text[last:match.start()]), size=8.5 if small else 10)
+            font(paragraph.add_run(text[last:match.start()]), size=9.3 if small else 10.5)
         token = match.group()
         if token.startswith("**"):
-            font(paragraph.add_run(token[2:-2]), size=8.5 if small else 10, bold=True)
+            font(paragraph.add_run(token[2:-2]), size=9.3 if small else 10.5, bold=True)
         elif token.startswith("`"):
             font(paragraph.add_run(token[1:-1]), "Consolas", 7.8 if small else 9, color=BLUE)
         else:
@@ -64,7 +64,7 @@ def inline(paragraph, text, small=False):
             hyperlink(paragraph, label, target[:-1])
         last = match.end()
     if last < len(text):
-        font(paragraph.add_run(text[last:]), size=8.5 if small else 10)
+        font(paragraph.add_run(text[last:]), size=9.3 if small else 10.5)
 
 
 def shade(cell, fill):
@@ -93,9 +93,13 @@ def build_table(document, lines):
     table = document.add_table(rows=len(data), cols=columns)
     table.autofit = False
     table.style = "Table Grid"
-    widths = [Cm(3.4), Cm(7.2), Cm(6.7)] if columns == 3 else [Cm(6.7), Cm(10.6)]
+    widths = [Cm(4), Cm(6.3), Cm(7)] if columns == 3 else [Cm(6.4), Cm(10.9)]
+    if data[0][0] == 'ID와 우선순위':
+        widths = [Cm(3), Cm(2.5), Cm(11.8)]
     if columns != 2 and columns != 3:
         widths = [Cm(17.3 / columns)] * columns
+    for column, width in zip(table.columns, widths):
+        column.width = width
     for row_number, values in enumerate(data):
         row = table.rows[row_number]
         no_split(row)
@@ -134,10 +138,10 @@ def make_document():
 
     normal = document.styles["Normal"]
     normal.font.name = "맑은 고딕"
-    normal.font.size = Pt(10)
+    normal.font.size = Pt(10.5)
     normal._element.rPr.rFonts.set(qn("w:eastAsia"), "맑은 고딕")
     normal.paragraph_format.space_after = Pt(6)
-    normal.paragraph_format.line_spacing = 1.17
+    normal.paragraph_format.line_spacing = 1.35
     title = document.styles["Title"]
     title.font.name = "맑은 고딕"
     title._element.rPr.rFonts.set(qn("w:eastAsia"), "맑은 고딕")
@@ -186,7 +190,9 @@ def make_document():
         if line.startswith("# "):
             document.add_paragraph(line[2:], style="Title")
         elif line.startswith("## "):
-            document.add_paragraph(line[3:], style="Heading 1")
+            paragraph = document.add_paragraph(line[3:], style="Heading 1")
+            if not line.startswith('## 1 '):
+                paragraph.paragraph_format.page_break_before = True
         elif line.startswith("### "):
             document.add_paragraph(line[4:], style="Heading 2")
         else:

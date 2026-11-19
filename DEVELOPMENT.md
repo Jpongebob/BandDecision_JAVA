@@ -1,5 +1,7 @@
 # BandDecision 개발 보고서
 
+H57(2026-11-20): 제출 보고서의 평가 6항목과 확장 계획을 유지한 채 소제목·완료 기준·처리 흐름·사용 순서를 재구성했다. PDF는 장별 7쪽으로 나누고 전 페이지를 확인했다. Word는 편집 가능한 구조를 유지하지만 LibreOffice 부재로 전 페이지 렌더 확인은 미완료다. Java 기능과 기존 검사 결과는 바뀌지 않았다.
+
 H54 가이드 재점검 결과는 [GUIDELINE_REVIEW.md](docs/GUIDELINE_REVIEW.md)에 있다. 제출용 보고서의 우선순위 근거·호출 흐름·정렬 기준·실패 입력·사용 안내를 보완했고 최신 재실행은 기능 181개·Swing 200개 통과다. 향후 확장은 보고서 7절의 미구현 제안으로 구분한다.
 
 12주차 평가 기준 6항목을 현재 구현과 최신 검사에 맞춰 한 번에 읽을 제출용 문서는 **[DEVELOPMENT_REPORT.md](docs/DEVELOPMENT_REPORT.md)**이며, [편집용 Word](docs/BandDecision_Development_Report.docx)와 [PDF 판본](docs/BandDecision_Development_Report.pdf)도 생성했다. 이 파일은 상세 작업·변경 이력을 보존한다. 동료 검토·본인 시연·발표자료·실제 제출은 완료로 표시하지 않는다.

@@ -1,5 +1,11 @@
 # 검증 기록
 
+## V-20261120-01: H57 가독성·판본 동기화
+
+- `python docs/render_development_report.py`와 문서 런타임 Python의 `docs/render_development_docx.py` 실행 모두 종료 코드 0. 최종 PDF 7쪽 전체를 pypdfium2로 PNG 렌더하고 한글·표·제목·쪽나눔을 확인했다. 기존 4쪽에서 장별 7쪽으로 변경했으며 글씨를 줄여 압축하지 않았다.
+- 문서 스킬의 `render_docx.py` 실행은 `FileNotFoundError: LibreOffice soffice.exe was not found on PATH`로 종료 코드 1. DOCX 전체 페이지 시각 검증은 미완료이며 PDF 검증으로 대체 완료 처리하지 않는다.
+- Java src/test는 바꾸지 않았으며 181+200개 결과는 V-20261119-11의 이전 실행이다. 이번에는 문서 생성과 구조·내용·상대 링크·diff 검사를 수행한다.
+
 ## V-20261119-11: H55 제출 복사본 점검
 
 - `out/submission-check-<고유값>`에 src·test·실행 스크립트·문서만 복사하고 해당 복사본의 `build.ps1 -Test`를 실행했다. 기능 181개·Swing 200개, 종료 코드 0. 같은 복사본의 클래스에 `GuiSmokeTest --render` 실행도 200개 통과·종료 코드 0. 사용자 data는 사용하지 않았다.

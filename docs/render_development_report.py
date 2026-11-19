@@ -99,15 +99,16 @@ def main() -> None:
 <title>BandDecision 개발 문서</title><style>
 @page { size: A4; margin: 16mm 17mm 16mm; }
 * { box-sizing: border-box; }
-body { font-family: "Malgun Gothic", "맑은 고딕", sans-serif; font-size: 10pt; line-height: 1.52; color: #1b2741; }
-h1 { font-size: 23pt; color: #174dc7; margin: 0 0 8mm; padding-bottom: 4mm; border-bottom: 2px solid #3464e8; }
-h2 { font-size: 14pt; color: #163a89; margin: 6mm 0 3mm; padding-bottom: 1mm; border-bottom: 1px solid #cbd8f4; break-after: avoid; }
+body { font-family: "Malgun Gothic", "맑은 고딕", sans-serif; font-size: 10.5pt; line-height: 1.6; color: #202630; }
+h1 { font-size: 24pt; color: #111827; margin: 0 0 7mm; }
+h2 { font-size: 16pt; color: #163a89; margin: 6mm 0 4mm; break-after: avoid; }
+h2:nth-of-type(n+2) { break-before: page; margin-top: 0; }
 h3 { font-size: 11pt; color: #163a89; margin: 5mm 0 2mm; break-after: avoid; }
 p { margin: 0 0 3mm; orphans: 3; widows: 3; }
-table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; font-size: 8.3pt; line-height: 1.42; table-layout: fixed; }
+table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; font-size: 9.3pt; line-height: 1.5; table-layout: auto; }
 thead { display: table-header-group; }
 th { background: #eaf0ff; color: #17377b; text-align: left; font-weight: bold; }
-th, td { border: 1px solid #d2dbee; padding: 2mm 2.2mm; vertical-align: top; overflow-wrap: anywhere; }
+th, td { border: 1px solid #d2dbee; padding: 2.1mm 2.2mm; vertical-align: top; overflow-wrap: anywhere; word-break: keep-all; }
 tr { break-inside: avoid; }
 tr:nth-child(even) td { background: #f8faff; }
 code { font-family: Consolas, "Malgun Gothic", monospace; font-size: .92em; color: #17377b; overflow-wrap: anywhere; }
