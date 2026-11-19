@@ -1,5 +1,10 @@
 # 검증 기록
 
+## V-20261119-06: README 안내 대조
+
+- Windows PowerShell에서 `run.ps1`, `run-gui.ps1`, `build.ps1`, `Main.java`, `DemoData.java`와 화면 버튼 이름을 README의 실행·Demo·사용 안내와 대조했다. Demo는 저장 파일이 없을 때만 실행일 기준으로 생성되는 것을 확인하고, 고정 날짜 설명을 제거했다.
+- Python으로 README의 상대 링크 **13개 모두 존재**함을 확인했다(종료 코드 0). `rg`로 코드 블록 3쌍을 확인했다. `git diff --check` 종료 코드 0. Java 자동 검사와 실제 GUI 마우스 조작은 문서만 수정한 이번 작업에서 재실행하지 않았다. 이전 V-20261119-05의 170+198개 결과를 신규 결과로 계산하지 않는다.
+
 ## V-20261119-05: Git 게시 전 재검사
 
 - Windows PowerShell에서 `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test`를 다시 실행했다. `PASS: 170 checks (scheduling + songs + persistence)`와 `PASS: 198 Swing checks`, 종료 코드 0이었다. 같은 검사의 재실행이므로 기존 368개에 합산하지 않는다.
