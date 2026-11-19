@@ -99,24 +99,23 @@ def main() -> None:
 <title>BandDecision 개발 문서</title><style>
 @page { size: A4; margin: 16mm 17mm 16mm; }
 * { box-sizing: border-box; }
-body { font-family: "Malgun Gothic", "맑은 고딕", sans-serif; font-size: 10.5pt; line-height: 1.6; color: #202630; }
-h1 { font-size: 24pt; color: #111827; margin: 0 0 7mm; }
-h2 { font-size: 16pt; color: #163a89; margin: 6mm 0 4mm; break-after: avoid; }
-h2:nth-of-type(n+2) { break-before: page; margin-top: 0; }
-h3 { font-size: 11pt; color: #163a89; margin: 5mm 0 2mm; break-after: avoid; }
+body { font-family: "Malgun Gothic", "맑은 고딕", sans-serif; font-size: 11pt; line-height: 1.65; color: #171717; }
+h1 { font-size: 22pt; color: #111; text-align: center; margin: 0 0 9mm; }
+h2 { font-size: 14pt; color: #111; margin: 7mm 0 3mm; break-after: avoid; }
+h3 { font-size: 11pt; color: #111; margin: 4mm 0 2mm; break-after: avoid; }
 p { margin: 0 0 3mm; orphans: 3; widows: 3; }
+p:has(> strong:only-child) { break-after: avoid; }
 table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; font-size: 9.3pt; line-height: 1.5; table-layout: auto; }
 thead { display: table-header-group; }
-th { background: #eaf0ff; color: #17377b; text-align: left; font-weight: bold; }
-th, td { border: 1px solid #d2dbee; padding: 2.1mm 2.2mm; vertical-align: top; overflow-wrap: anywhere; word-break: keep-all; }
+th { background: #f0f0f0; color: #111; text-align: left; font-weight: bold; }
+th, td { border: 1px solid #bbb; padding: 2.1mm 2.2mm; vertical-align: top; overflow-wrap: anywhere; word-break: keep-all; }
 tr { break-inside: avoid; }
-tr:nth-child(even) td { background: #f8faff; }
-code { font-family: Consolas, "Malgun Gothic", monospace; font-size: .92em; color: #17377b; overflow-wrap: anywhere; }
-pre { padding: 3mm; background: #f2f5fb; border: 1px solid #d8e1f1; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 8.7pt; break-inside: avoid; }
+code { font-family: Consolas, "Malgun Gothic", monospace; font-size: .92em; color: #222; overflow-wrap: anywhere; }
+pre { padding: 3mm; background: #f6f6f6; border: 1px solid #ccc; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 8.7pt; break-inside: avoid; }
 pre code { font-size: inherit; }
-.reference { color: #174dc7; }
-.reference small { color: #536179; font-size: .83em; }
-strong { color: #102b69; }
+.reference { color: #222; }
+.reference small { color: #555; font-size: .83em; }
+strong { color: #111; }
 </style></head><body>""" + body + "</body></html>"
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(page, encoding="utf-8")

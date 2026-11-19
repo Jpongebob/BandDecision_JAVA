@@ -5,6 +5,7 @@ from pathlib import Path
 
 from docx import Document
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
@@ -15,9 +16,9 @@ ROOT = Path(__file__).resolve().parent
 SOURCE = ROOT / "DEVELOPMENT_REPORT.md"
 OUTPUT = ROOT / "BandDecision_Development_Report.docx"
 INLINE = re.compile(r"(\*\*[^*]+\*\*|`[^`]+`|\[[^]]+\]\([^)]+\))")
-BLUE = RGBColor(31, 69, 149)
-PALE = "E9EFFB"
-ALT = "F7F9FD"
+BLUE = RGBColor(20, 20, 20)
+PALE = "F0F0F0"
+ALT = "FFFFFF"
 
 
 def font(run, name="맑은 고딕", size=None, bold=None, color=None):
@@ -39,7 +40,7 @@ def hyperlink(paragraph, label, target):
     text_run = OxmlElement("w:r")
     properties = OxmlElement("w:rPr")
     color = OxmlElement("w:color")
-    color.set(qn("w:val"), "1F4595")
+    color.set(qn("w:val"), "222222")
     properties.append(color)
     text_run.append(properties)
     value = OxmlElement("w:t")
@@ -188,16 +189,17 @@ def make_document():
             index += 1
             continue
         if line.startswith("# "):
-            document.add_paragraph(line[2:], style="Title")
+            paragraph = document.add_paragraph(line[2:], style="Title")
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
         elif line.startswith("## "):
             paragraph = document.add_paragraph(line[3:], style="Heading 1")
-            if not line.startswith('## 1 '):
-                paragraph.paragraph_format.page_break_before = True
         elif line.startswith("### "):
             document.add_paragraph(line[4:], style="Heading 2")
         else:
             paragraph = document.add_paragraph(style="Normal")
             inline(paragraph, line)
+            if line.startswith('**') and line.endswith('**'):
+                paragraph.paragraph_format.keep_with_next = True
         index += 1
     document.save(OUTPUT)
     print(OUTPUT)
