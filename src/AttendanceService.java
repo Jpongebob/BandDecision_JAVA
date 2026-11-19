@@ -4,11 +4,20 @@ import java.util.Arrays;
 /** 날짜별 응답을 저장한다. 미기록 날짜는 미응답이며 첫 응답 시 저장 행을 만든다. */
 public final class AttendanceService {
     public static final int UNANSWERED = 0, AVAILABLE = 1, UNAVAILABLE = 2;
+    private int memberCount = 6;
     private LocalDate[] dates = new LocalDate[0];
     private int[][] answers = new int[0][6];
     private String[][] reasons = new String[0][6];
     private void check(int member) {
-        if (member < 0 || member >= 6) throw new IllegalArgumentException("멤버 번호가 잘못되었습니다.");
+        if (member < 0 || member >= memberCount) throw new IllegalArgumentException("멤버 번호가 잘못되었습니다.");
+    }
+    public int getMemberCount() { return memberCount; }
+    void addMember() {
+        memberCount++;
+        for (int i = 0; i < dates.length; i++) {
+            answers[i] = Arrays.copyOf(answers[i], memberCount);
+            reasons[i] = Arrays.copyOf(reasons[i], memberCount);
+        }
     }
     private int index(LocalDate date) {
         for (int i = 0; i < dates.length; i++) if (dates[i].equals(date)) return i;
@@ -25,7 +34,7 @@ public final class AttendanceService {
         for (LocalDate old : dates) if (old.equals(date)) return;
         int size = dates.length;
         dates = Arrays.copyOf(dates, size + 1); answers = Arrays.copyOf(answers, size + 1); reasons = Arrays.copyOf(reasons, size + 1);
-        dates[size] = date; answers[size] = new int[6]; reasons[size] = new String[6];
+        dates[size] = date; answers[size] = new int[memberCount]; reasons[size] = new String[memberCount];
         for (int i = size; i > 0 && dates[i].isBefore(dates[i - 1]); i--) {
             LocalDate d = dates[i]; dates[i] = dates[i - 1]; dates[i - 1] = d;
             int[] a = answers[i]; answers[i] = answers[i - 1]; answers[i - 1] = a;
@@ -56,7 +65,7 @@ public final class AttendanceService {
         reasons[i][member] = choice == UNAVAILABLE ? (reason == null || reason.isBlank() ? "불가 응답" : reason.trim()) : null;
     }
     public int count(LocalDate date, int choice) {
-        int n = 0; for (int member = 0; member < 6; member++) if (response(member, date) == choice) n++; return n;
+        int n = 0; for (int member = 0; member < memberCount; member++) if (response(member, date) == choice) n++; return n;
     }
     public void respondMany(int member, LocalDate[] selected, int choice, String reason) {
         check(member);
@@ -108,7 +117,7 @@ public final class AttendanceService {
     }
     public boolean allSubmitted() { return allSubmitted(LocalDate.now()); }
     public boolean allSubmitted(LocalDate today) {
-        for (int i = 0; i < 6; i++) if (!isSubmitted(i, today)) return false;
+        for (int i = 0; i < memberCount; i++) if (!isSubmitted(i, today)) return false;
         return true;
     }
 }

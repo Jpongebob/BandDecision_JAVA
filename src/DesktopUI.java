@@ -32,7 +32,7 @@ public final class DesktopUI extends JFrame {
     private static final Color NAVY = UiTheme.INK;
     private final BandDecision app;
     private final DataStore store;
-    private final Member[] members;
+    private Member[] members;
     private final AttendanceService attendance;
     private final SongService songs;
     private final JLabel status = new JLabel(" ");
@@ -46,22 +46,28 @@ public final class DesktopUI extends JFrame {
     private final JPanel planModes = new JPanel(new CardLayout());
     private JPanel planBuilder;
     private JPanel planList;
-    private final JTable memberTable = table("파트", "현재 실력", "응답 상태");
+    private final JTable memberTable = table("멤버 · 파트", "현재 실력", "기간 전체 응답");
     private ScheduleCalendarPanel scheduleCalendar;
-    private final JTable songTable = table("ID", "제목", "아티스트");
+    private final JTable songTable = table("제목", "아티스트", "투표 현황");
     private final JLabel selectedSongTitle = new JLabel("후보곡을 선택하세요");
-    private final JLabel[] difficultyLabels = new JLabel[6];
+    private JLabel[] difficultyLabels;
+    private JPanel difficultyGrid;
     private final JTable voteTable = table("파트", "찬반", "반대 사유");
     private final JTable dateTable = table("순위", "날짜", "참석 인원");
-    private final JTable recommendationTable = table("순위", "곡 ID", "제목", "아티스트", "찬성", "총 부담", "추천 점수");
+    private final JTable recommendationTable = table("순위", "제목", "아티스트", "찬성", "총 부담", "추천 점수");
     private final JTextArea dateDetail = textArea(5);
     private final JTextArea planDetail = textArea(14);
-    private final JTable plansTable = table("계획 ID", "날짜", "참석", "곡 수");
+    private final JTable plansTable = table("계획 ID", "날짜", "장소", "참석", "곡 수");
+    private final JTextField planLocation = new JTextField(22);
+    private boolean showPastPlans;
+    private JButton upcomingPlansButton;
+    private JButton pastPlansButton;
     private int editingPlanId = -1;
     private final JLabel editingNotice = new JLabel();
     private final JButton cancelPlanEdit = new JButton("수정 취소");
     
     private int selectedSongId = -1;
+    private SongRecommendation[] currentRecommendations = new SongRecommendation[0];
     private boolean firstSongSelection = true;
     private boolean updatingVotes;
     private JButton voteSaveButton;
@@ -97,8 +103,8 @@ public final class DesktopUI extends JFrame {
         this.app = app; this.store = store;
         members = app.getMembers(); attendance = app.getAttendance(); songs = app.getSongs();
         UiTheme.styleCombo(activeMember); UiTheme.styleCombo(voteChoice);
-        for (Member member : members) activeMember.addItem(member.getPart());
-        workspace = new WorkspaceView(() -> scheduleCalendar == null || scheduleCalendar.finishEditing(), this::updateHeader);
+        for (Member member : members) activeMember.addItem(member.displayName());
+        workspace = new WorkspaceView(() -> scheduleCalendar == null || scheduleCalendar.finishEditing(), this::updateHeader, activeMember);
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         setMinimumSize(new Dimension(1080, 800));
         setSize(1280, 930);
@@ -112,13 +118,12 @@ public final class DesktopUI extends JFrame {
         screenHint.setForeground(UiTheme.MUTED); screenHint.setFont(UiTheme.font(Font.PLAIN, 14));
         JPanel heading = new JPanel(new BorderLayout(0, 4)); heading.setOpaque(false);
         heading.add(screenTitle, BorderLayout.NORTH); heading.add(screenHint, BorderLayout.SOUTH);
-        header.add(heading, BorderLayout.WEST);
-        activeMember.setPreferredSize(new Dimension(155, 38));
-        JLabel memberLabel = new JLabel("입력할 멤버"); memberLabel.setLabelFor(activeMember);
-        header.add(row(memberLabel, activeMember), BorderLayout.EAST);
+        header.add(javax.swing.Box.createHorizontalStrut(WorkspaceView.SIDEBAR_WIDTH + 20), BorderLayout.WEST);
+        header.add(heading, BorderLayout.CENTER);
         JPanel context = new JPanel(new BorderLayout()); context.setOpaque(false);
         submittedValue.setForeground(UiTheme.ACCENT);
-        context.add(row(submittedValue, scheduleOwner), BorderLayout.WEST);
+        context.add(javax.swing.Box.createHorizontalStrut(WorkspaceView.SIDEBAR_WIDTH + 20), BorderLayout.WEST);
+        context.add(row(submittedValue, scheduleOwner), BorderLayout.CENTER);
         context.add(row(button("A -", () -> resizeText(-10)), textSize, button("A +", () -> resizeText(10))), BorderLayout.EAST);
         header.add(context, BorderLayout.SOUTH);
         workspace.addPage(WorkspaceView.Page.SETTINGS, membersPanel());
@@ -138,7 +143,8 @@ public final class DesktopUI extends JFrame {
             }
         });
         refresh();
-        status.setText("변경한 내용은 자동으로 저장됩니다."); status.setToolTipText("저장 위치: " + store.getFile());
+        status.setText("변경 시 자동 저장 · 저장 실패 시 밴드 설정에서 다시 시도할 수 있습니다.");
+        status.setToolTipText("저장 위치: " + store.getFile());
         resizeText(0);
         workspace.show(WorkspaceView.Page.SCHEDULE);
     }
@@ -253,26 +259,82 @@ public final class DesktopUI extends JFrame {
         }
         catch (IOException e) {
             status.setForeground(new Color(185, 50, 45));
-            status.setText("저장 실패 · 현재 변경은 메모리에만 남아 있습니다.");
+            status.setText("저장 실패 · 현재 변경은 메모리에만 남아 있습니다. 밴드 설정에서 저장을 다시 시도하세요.");
             error("저장하지 못했습니다.\n" + e.getMessage()); return false;
         }
     }
     private void changed() { refresh(); save(); }
 
     private JPanel membersPanel() {
-        JPanel panel = page("파트별 현재 실력", "실력은 추천곡의 연주 부담 계산에 사용됩니다. 파트를 선택하고 새 실력을 저장하세요.");
+        JPanel panel = page("멤버와 현재 실력", "멤버를 추가하거나 이름·파트와 실력을 수정하세요. 같은 파트를 여러 명이 맡아도 됩니다. 응답 상태는 오늘부터 다음 달 말일까지의 전체 날짜 기준입니다.");
         panel.add(UiTheme.scroll(memberTable), BorderLayout.CENTER);
         JSpinner skill = rating();
         memberTable.getSelectionModel().addListSelectionListener(e -> {
             int index = memberTable.getSelectedRow();
             if (!refreshing && index >= 0) skill.setValue(members[index].getSkill());
         });
-        panel.add(stack(row(new JLabel("새 실력 (1~5)"), skill, button("실력 저장", () -> {
+        panel.add(stack(row(button("멤버 추가", () -> memberForm(null)), button("선택 멤버 수정", () -> memberForm(members[selectedRow(memberTable, "수정할 멤버를 선택하세요.")]))),
+            row(new JLabel("새 실력 (1~5)"), skill, button("실력 저장", () -> {
             int index = selectedRow(memberTable, "실력을 수정할 파트를 선택하세요.");
             members[index].setSkill(ratingValue(skill)); changed();
         })), row(
-            button("지금 저장", () -> { if (scheduleCalendar.finishEditing()) save(); }))), BorderLayout.SOUTH);
+            button("저장 다시 시도", () -> { if (scheduleCalendar.finishEditing()) save(); }),
+            new JLabel("변경할 때 자동 저장됩니다. 저장에 실패한 경우 다시 시도하세요."))), BorderLayout.SOUTH);
         return panel;
+    }
+    private void memberForm(Member editing) {
+        JTextField name = new JTextField(editing == null ? "" : editing.getName(), 20);
+        JTextField part = new JTextField(editing == null ? "" : editing.getPart(), 20);
+        JSpinner skill = rating(); if (editing != null) skill.setValue(editing.getSkill());
+        JPanel form = new JPanel(new GridLayout(0, 2, 10, 10));
+        form.add(new JLabel("이름")); form.add(name);
+        form.add(new JLabel("파트")); form.add(part);
+        form.add(new JLabel("현재 실력 (1~5)")); form.add(skill);
+        while (JOptionPane.showConfirmDialog(this, form, editing == null ? "멤버 추가" : "멤버 수정",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
+            try {
+                int value = ratingValue(skill);
+                if (editing == null) {
+                    if (name.getText().isBlank()) throw new IllegalArgumentException("새 멤버의 이름을 입력하세요.");
+                    addMember(name.getText(), part.getText(), value);
+                }
+                else editMember(editing, name.getText(), part.getText(), value);
+                return;
+            } catch (IllegalArgumentException e) { error(e.getMessage()); }
+        }
+    }
+    void addMember(String part, int skill) {
+        addMember("", part, skill);
+    }
+    void addMember(String name, String part, int skill) {
+        app.addMember(name, part, skill);
+        syncMembers(app.getMembers().length - 1); changed();
+    }
+    void editMember(Member member, String part, int skill) {
+        editMember(member, member.getName(), part, skill);
+    }
+    void editMember(Member member, String name, String part, int skill) {
+        new Member(name, part, skill);
+        member.setName(name); member.setPart(part); member.setSkill(skill);
+        syncMembers(activeMember.getSelectedIndex()); changed();
+    }
+    private void syncMembers(int selected) {
+        members = app.getMembers();
+        refreshing = true;
+        try {
+            if (scheduleCalendar != null) scheduleCalendar.setMembers(members);
+            activeMember.removeAllItems();
+            for (Member member : members) activeMember.addItem(member.displayName());
+            activeMember.setSelectedIndex(Math.max(0, Math.min(selected, members.length - 1)));
+            if (difficultyGrid != null) {
+                difficultyGrid.removeAll(); difficultyLabels = new JLabel[members.length];
+                for (int i = 0; i < members.length; i++) {
+                    difficultyLabels[i] = new JLabel(); difficultyLabels[i].setFont(UiTheme.font(Font.PLAIN, 14));
+                    difficultyGrid.add(difficultyLabels[i]);
+                }
+                difficultyGrid.revalidate(); difficultyGrid.repaint();
+            }
+        } finally { refreshing = false; }
     }
 
     private JPanel schedulesPanel() {
@@ -286,21 +348,21 @@ public final class DesktopUI extends JFrame {
         JPanel panel = page("후보곡", "곡을 누르면 오른쪽에서 난이도와 투표를 확인해요.");
         songTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         for (int i = 0; i < songTable.getColumnCount(); i++) {
-            songTable.getColumnModel().getColumn(i).setPreferredWidth(i == 1 || i == 2 ? 180 : i == 0 ? 55 : 110);
-            songTable.getColumnModel().getColumn(i).setMinWidth(i == 0 ? 42 : 100);
+            songTable.getColumnModel().getColumn(i).setPreferredWidth(i == 2 ? 230 : 180);
+            songTable.getColumnModel().getColumn(i).setMinWidth(100);
         }
         panel.add(UiTheme.scroll(songTable), BorderLayout.CENTER);
         JPanel tools = new JPanel(new BorderLayout(0, 6)); tools.setOpaque(false);
         tools.add(button("새 후보곡 등록", this::addSong), BorderLayout.NORTH);
         tools.add(row(button("선택 곡 수정", () -> songForm(selectedCandidate())), button("선택 곡 삭제", () -> {
                 Song song = selectedCandidate();
-                if (!ask(song.label() + "\n이 곡과 해당 곡의 투표·반대 사유를 삭제할까요?\n이미 확정된 계획의 기록은 유지됩니다.")) return;
+                if (!ask(song.getTitle() + " — " + song.getArtist() + "\n이 곡과 해당 곡의 투표·반대 사유를 삭제할까요?\n이미 확정된 계획의 기록은 유지됩니다.")) return;
                 songs.delete(song.getId()); changed();
             })), BorderLayout.SOUTH);
         panel.add(tools, BorderLayout.SOUTH);
         songTable.getSelectionModel().addListSelectionListener(e -> {
             if (refreshing || e.getValueIsAdjusting()) return;
-            selectedSongId = songTable.getSelectedRow() < 0 ? -1 : (Integer) songTable.getValueAt(songTable.getSelectedRow(), 0);
+            selectedSongId = songTable.getSelectedRow() < 0 ? -1 : songs.getSongs()[songTable.getSelectedRow()].getId();
             refreshVotes();
         });
         return panel;
@@ -318,7 +380,7 @@ public final class DesktopUI extends JFrame {
         body.add(row(button("확정된 계획", this::showPlanList), button("새 합주 만들기", () -> {
             if (app.getConfirmedPlans().length >= BandDecision.MAX_PLANS)
                 throw new IllegalArgumentException("최대 5개입니다. 기존 계획을 수정하거나 삭제하세요.");
-            editingPlanId = -1; refresh(); showPlanBuilder();
+            editingPlanId = -1; planLocation.setText(""); refresh(); showPlanBuilder();
         })), BorderLayout.NORTH);
         planList = planPanel(); planBuilder = recommendationsPanel();
         planModes.add(planList, "list"); planModes.add(planBuilder, "builder");
@@ -333,23 +395,23 @@ public final class DesktopUI extends JFrame {
     public boolean isBuildingPlan() { return planBuilder.isVisible(); }
     private Song selectedCandidate() {
         int index = selectedRow(songTable, "수정하거나 삭제할 후보곡을 표에서 선택하세요.");
-        return songs.find((Integer) songTable.getValueAt(index, 0));
+        return songs.getSongs()[index];
     }
     private void addSong() { songForm(null); }
     private void songForm(Song editing) {
         JTextField title = new JTextField(20), artist = new JTextField(20);
         if (editing != null) { title.setText(editing.getTitle()); artist.setText(editing.getArtist()); }
-        JSpinner[] difficulties = new JSpinner[6];
+        JSpinner[] difficulties = new JSpinner[members.length];
         JPanel form = new JPanel(new GridLayout(0, 2, 10, 10));
         form.add(new JLabel("제목")); form.add(title); form.add(new JLabel("아티스트")); form.add(artist);
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < members.length; i++) {
             difficulties[i] = rating(); if (editing != null) difficulties[i].setValue(editing.getDifficulty(i));
-            form.add(new JLabel(members[i].getPart() + " 난이도")); form.add(difficulties[i]);
+            form.add(new JLabel(members[i].displayName() + " 난이도")); form.add(difficulties[i]);
         }
         while (JOptionPane.showConfirmDialog(this, form, editing == null ? "새 후보곡 등록" : "후보곡 수정 · 기존 투표 유지",
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
             try {
-                int[] values = new int[6]; for (int i = 0; i < 6; i++) values[i] = ratingValue(difficulties[i]);
+                int[] values = new int[members.length]; for (int i = 0; i < members.length; i++) values[i] = ratingValue(difficulties[i]);
                 if (editing == null) selectedSongId = songs.register(title.getText(), artist.getText(), values).getId();
                 else songs.update(editing.getId(), title.getText(), artist.getText(), values);
                 changed(); return;
@@ -364,12 +426,13 @@ public final class DesktopUI extends JFrame {
         JPanel songInfo = new JPanel(new BorderLayout(0, 8)); songInfo.setOpaque(false);
         selectedSongTitle.setFont(UiTheme.font(Font.BOLD, 20));
         songInfo.add(selectedSongTitle, BorderLayout.NORTH);
-        JPanel levels = new JPanel(new GridLayout(3, 2, 8, 6)); levels.setOpaque(false);
-        for (int i = 0; i < 6; i++) {
+        difficultyGrid = new JPanel(new GridLayout(0, 2, 8, 6)); difficultyGrid.setOpaque(false);
+        difficultyLabels = new JLabel[members.length];
+        for (int i = 0; i < members.length; i++) {
             difficultyLabels[i] = new JLabel(); difficultyLabels[i].setFont(UiTheme.font(Font.PLAIN, 14));
-            levels.add(difficultyLabels[i]);
+            difficultyGrid.add(difficultyLabels[i]);
         }
-        songInfo.add(levels, BorderLayout.CENTER);
+        songInfo.add(difficultyGrid, BorderLayout.CENTER);
         songInfo.add(voteSummary, BorderLayout.SOUTH); details.add(songInfo, BorderLayout.NORTH);
         voteTable.getColumnModel().getColumn(0).setPreferredWidth(140);
         voteTable.getColumnModel().getColumn(1).setPreferredWidth(90);
@@ -399,13 +462,12 @@ public final class DesktopUI extends JFrame {
         javax.swing.JDialog dialog = new javax.swing.JDialog(this, "전체 곡 투표 결과", true);
         dialog.setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         JPanel content = page("전체 곡 투표 결과", "찬성·반대·미응답 수와 추천 자격을 비교할 수 있습니다.");
-        JTable resultTable = table("ID", "제목", "찬성", "반대", "미응답", "추천 상태");
-        for (Song song : songs.voteResults()) model(resultTable).addRow(new Object[] {song.getId(), song.getTitle(),
+        JTable resultTable = table("제목", "찬성", "반대", "미응답", "추천 상태");
+        for (Song song : songs.voteResults()) model(resultTable).addRow(new Object[] {song.getTitle(),
             song.count(Song.YES), song.count(Song.NO), song.count(Song.UNANSWERED),
             song.eligible() ? "추천 가능" : song.count(Song.UNANSWERED) > 0 ? "투표 미완료" : "찬성 부족"});
-        resultTable.getColumnModel().getColumn(0).setPreferredWidth(60);
-        resultTable.getColumnModel().getColumn(1).setPreferredWidth(260);
-        resultTable.getColumnModel().getColumn(5).setPreferredWidth(150);
+        resultTable.getColumnModel().getColumn(0).setPreferredWidth(260);
+        resultTable.getColumnModel().getColumn(4).setPreferredWidth(150);
         content.add(UiTheme.scroll(resultTable), BorderLayout.CENTER);
         content.add(row(button("닫기", dialog::dispose)), BorderLayout.SOUTH);
         UiTheme.resizeFonts(content, textPercent / 100f);
@@ -430,17 +492,17 @@ public final class DesktopUI extends JFrame {
                 voteSummary.setText(songs.getSongs().length == 0 ? "새 후보곡을 등록하면 투표할 수 있어요." : "왼쪽 목록에서 곡을 선택하세요."); return;
             }
             Song song = selectedVoteSong(); selectedSongTitle.setText(song.getTitle() + " · " + song.getArtist());
-            selectedSongTitle.setToolTipText(song.label());
-            for (int i = 0; i < 6; i++) difficultyLabels[i].setText(members[i].getPart() + "  " + Member.stars(song.getDifficulty(i)));
+            selectedSongTitle.setToolTipText(song.getTitle() + " — " + song.getArtist());
+            for (int i = 0; i < members.length; i++) difficultyLabels[i].setText(members[i].displayName() + "  " + Member.stars(song.getDifficulty(i)));
             voteSummary.setText("찬성 " + song.count(Song.YES) + " · 반대 " + song.count(Song.NO) + " · 미응답 " + song.count(Song.UNANSWERED));
-            for (int i = 0; i < 6; i++) model(voteTable).addRow(new Object[] {members[i].getPart(),
+            for (int i = 0; i < members.length; i++) model(voteTable).addRow(new Object[] {members[i].displayName(),
                 song.getVote(i) == Song.YES ? "찬성" : song.getVote(i) == Song.NO ? "반대" : "미응답", song.getReason(i)});
             voteTable.setRowSelectionInterval(activeMember.getSelectedIndex(), activeMember.getSelectedIndex());
         } finally { updatingVotes = false; }
         loadVoteEditor();
     }
     private void selectVoteMember() {
-        if (voteTable.getRowCount() == 6) voteTable.setRowSelectionInterval(activeMember.getSelectedIndex(), activeMember.getSelectedIndex());
+        if (voteTable.getRowCount() == members.length) voteTable.setRowSelectionInterval(activeMember.getSelectedIndex(), activeMember.getSelectedIndex());
         loadVoteEditor();
     }
     private void loadVoteEditor() {
@@ -459,12 +521,12 @@ public final class DesktopUI extends JFrame {
         dates.add(UiTheme.scroll(dateTable), BorderLayout.CENTER);
         dates.add(UiTheme.scroll(dateDetail), BorderLayout.SOUTH);
         JPanel recommended = new JPanel(new BorderLayout(0, 8));
-        int[] widths = {46, 54, 130, 130, 60, 70, 80};
+        int[] widths = {46, 130, 130, 60, 70, 80};
         for (int i = 0; i < widths.length; i++) recommendationTable.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
         dateTable.getColumnModel().getColumn(0).setPreferredWidth(55);
         dateTable.getColumnModel().getColumn(1).setPreferredWidth(180);
         dateTable.getColumnModel().getColumn(2).setPreferredWidth(110);
-        recommended.add(new JLabel("곡 추천 · 전원 투표 + 찬성 4명 이상"), BorderLayout.NORTH);
+        recommended.add(new JLabel("곡 추천 · 전원 투표 + 2/3 이상 찬성"), BorderLayout.NORTH);
         recommendationTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         recommended.add(UiTheme.scroll(recommendationTable), BorderLayout.CENTER);
         recommended.add(new JLabel("점수 = 찬성 × 3 - 총 부담 × 2"), BorderLayout.SOUTH);
@@ -476,6 +538,7 @@ public final class DesktopUI extends JFrame {
         UiTheme.styleButton(cancelPlanEdit, false);
         cancelPlanEdit.addActionListener(e -> { editingPlanId = -1; refresh(); showPlanList(); });
         panel.add(stack(row(recommendationNotice), row(editingNotice),
+            row(new JLabel("합주 장소"), planLocation),
             row(button("최신 데이터로 다시 추천", this::refresh), confirmButton, cancelPlanEdit)), BorderLayout.SOUTH);
         return panel;
     }
@@ -484,9 +547,9 @@ public final class DesktopUI extends JFrame {
         if (index < 0) { dateDetail.setText("날짜를 선택하면 참석자와 불참 사유가 표시됩니다."); return; }
         LocalDate day = LocalDate.parse(dateTable.getValueAt(index, 1).toString());
         StringBuilder text = new StringBuilder(day + " · 20:00–22:00\n");
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < members.length; i++) {
             String reason = attendance.reason(i, day);
-            text.append(members[i].getPart()).append(reason == null ? " · 참석 가능" : " · 불참: " + reason).append('\n');
+            text.append(members[i].displayName()).append(reason == null ? " · 참석 가능" : " · 불참: " + reason).append('\n');
         }
         dateDetail.setText(text.toString()); dateDetail.setCaretPosition(0);
     }
@@ -497,17 +560,18 @@ public final class DesktopUI extends JFrame {
         int[] rows = recommendationTable.getSelectedRows();
         if (rows.length == 0) throw new IllegalArgumentException("추천곡을 하나 이상 선택하세요.");
         LocalDate date = LocalDate.parse(dateTable.getValueAt(index, 1).toString());
-        int[] ids = new int[rows.length]; for (int i = 0; i < rows.length; i++) ids[i] = (Integer) recommendationTable.getValueAt(rows[i], 1);
-        RehearsalPlan preview = app.preview(date, ids, LocalDate.now());
-        boolean partial = preview.getAttendees().length < 6;
-        if (partial && !ask("주의: 전체 6인 합주가 아닙니다. 빠지는 파트와 사유:\n"
+        int[] ids = new int[rows.length]; for (int i = 0; i < rows.length; i++) ids[i] = currentRecommendations[rows[i]].getSong().getId();
+        String location = planLocation.getText().trim();
+        RehearsalPlan preview = app.preview(date, ids, LocalDate.now(), location);
+        boolean partial = preview.getAttendees().length < members.length;
+        if (partial && !ask("주의: 전원 합주가 아닙니다. 빠지는 멤버와 사유:\n"
             + String.join("\n", preview.getAbsentees()) + "\n이 날짜로 진행할까요?")) return;
         JTextArea detail = textArea(17); detail.setText(preview.describe()); detail.setCaretPosition(0);
         if (JOptionPane.showConfirmDialog(this, UiTheme.scroll(detail), editingPlanId < 0 ? "이 계획을 추가할까요?" : "선택한 계획을 수정할까요?",
             JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE) != JOptionPane.YES_OPTION) return;
         int changedId = editingPlanId < 0 ? app.getNextPlanId() : editingPlanId;
-        if (editingPlanId < 0) app.confirm(date, ids, LocalDate.now(), preview, partial);
-        else app.updatePlan(editingPlanId, date, ids, LocalDate.now(), preview, partial);
+        if (editingPlanId < 0) app.confirm(date, ids, LocalDate.now(), location, preview, partial);
+        else app.updatePlan(editingPlanId, date, ids, LocalDate.now(), location, preview, partial);
         editingPlanId = -1;
         changed(); showPlanList();
         for (int row = 0; row < plansTable.getRowCount(); row++)
@@ -515,13 +579,19 @@ public final class DesktopUI extends JFrame {
     }
     private JPanel planPanel() {
         JPanel panel = page("확정 합주 계획", "최대 5개까지 보관합니다. 목록에서 선택하여 조회·수정·삭제하세요. 기존 기록은 명시적으로 수정할 때만 바뀝니다.");
+        upcomingPlansButton = button("예정된 계획", () -> { showPastPlans = false; refresh(); });
+        pastPlansButton = button("이전 내역", () -> { showPastPlans = true; refresh(); });
+        JPanel categories = row(upcomingPlansButton, pastPlansButton);
         plansTable.getColumnModel().getColumn(0).setPreferredWidth(65);
         plansTable.getColumnModel().getColumn(1).setPreferredWidth(140);
-        plansTable.getColumnModel().getColumn(2).setPreferredWidth(65);
-        plansTable.getColumnModel().getColumn(3).setPreferredWidth(55);
+        plansTable.getColumnModel().getColumn(2).setPreferredWidth(140);
+        plansTable.getColumnModel().getColumn(3).setPreferredWidth(65);
+        plansTable.getColumnModel().getColumn(4).setPreferredWidth(55);
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, UiTheme.scroll(plansTable), UiTheme.scroll(planDetail));
         split.setResizeWeight(0.36); split.setBorder(null); split.setDividerSize(12);
-        panel.add(split, BorderLayout.CENTER);
+        JPanel listBody = new JPanel(new BorderLayout(0, 8)); listBody.setOpaque(false);
+        listBody.add(categories, BorderLayout.NORTH); listBody.add(split, BorderLayout.CENTER);
+        panel.add(listBody, BorderLayout.CENTER);
         plansTable.getSelectionModel().addListSelectionListener(e -> { if (!refreshing) showSelectedPlan(); });
         panel.add(row(button("선택 계획 수정", this::startPlanEdit), button("선택 계획 삭제", () -> {
             int id = selectedPlanId();
@@ -543,10 +613,11 @@ public final class DesktopUI extends JFrame {
     private void startPlanEdit() {
         int id = selectedPlanId(); RehearsalPlan plan = app.findPlan(id).plan();
         editingPlanId = id; refresh();
+        planLocation.setText(plan.getLocation());
         for (int row = 0; row < dateTable.getRowCount(); row++)
             if (plan.getDate().toString().equals(dateTable.getValueAt(row, 1).toString())) dateTable.setRowSelectionInterval(row, row);
         for (int row = 0; row < recommendationTable.getRowCount(); row++) {
-            String prefix = "[ID " + recommendationTable.getValueAt(row, 1) + "] ";
+            String prefix = "[ID " + currentRecommendations[row].getSong().getId() + "] ";
             for (String label : plan.getSongs()) if (label.startsWith(prefix)) recommendationTable.addRowSelectionInterval(row, row);
         }
         showPlanBuilder();
@@ -556,7 +627,7 @@ public final class DesktopUI extends JFrame {
         int selected = scheduleCalendar.getSelectedMember();
         boolean completed = attendance.isSubmitted(selected);
         submittedValue.setText(completed ? "응답 완료" : "응답 미완료");
-        scheduleOwner.setText(members[selected].getPart() + " · " + ScheduleWindow.label(LocalDate.now()));
+        scheduleOwner.setText(members[selected].displayName() + " · " + ScheduleWindow.label(LocalDate.now()) + " 전체 날짜 기준");
         submittedValue.setToolTipText("오늘부터 다음 달 말일까지 모든 날짜에 가능/불가 응답하면 완료입니다.");
     }
     /** 갱신 시 선택을 해제해 이전 행 번호로 다른 항목을 수정하는 일을 방지한다. */
@@ -567,9 +638,9 @@ public final class DesktopUI extends JFrame {
         refreshing = true;
         try {
             model(memberTable).setRowCount(0);
-            for (int i = 0; i < 6; i++) {
-                model(memberTable).addRow(new Object[] {members[i].getPart(), Member.stars(members[i].getSkill()),
-                    attendance.isSubmitted(i) ? "응답 완료" : "미응답"});
+            for (int i = 0; i < members.length; i++) {
+                model(memberTable).addRow(new Object[] {members[i].displayName(), Member.stars(members[i].getSkill()),
+                    attendance.isSubmitted(i) ? "응답 완료" : "응답 미완료"});
             }
             refreshScheduleStatus();
             scheduleCalendar.refresh();
@@ -582,20 +653,22 @@ public final class DesktopUI extends JFrame {
             for (int songIndex = 0; songIndex < currentSongs.length; songIndex++) {
                 Song song = currentSongs[songIndex];
                 if (song.getId() == previousId) selectedIndex = songIndex;
-                model(songTable).addRow(new Object[] {song.getId(), song.getTitle(), song.getArtist()});
+                model(songTable).addRow(new Object[] {song.getTitle(), song.getArtist(),
+                    "찬 " + song.count(Song.YES) + " · 반 " + song.count(Song.NO) + " · 미 " + song.count(Song.UNANSWERED)});
             }
             selectedSongId = selectedIndex < 0 ? -1 : previousId;
             if (selectedIndex >= 0) songTable.setRowSelectionInterval(selectedIndex, selectedIndex);
             refreshVotes();
             model(dateTable).setRowCount(0); dateDetail.setText("날짜를 선택하면 참석자와 불참 사유가 표시됩니다.");
             DateRecommendation[] dates = DateRecommender.recommend(attendance, LocalDate.now());
-            for (int i = 0; i < dates.length; i++) model(dateTable).addRow(new Object[] {i + 1, dates[i].getDate(), dates[i].getAttendance() + "/6"});
+            for (int i = 0; i < dates.length; i++) model(dateTable).addRow(new Object[] {i + 1, dates[i].getDate(), dates[i].getAttendance() + "/" + members.length});
             recommendationNotice.setText(dates.length == 0 ? "전원 응답이 모인 합주 가능 날짜가 없습니다." : "날짜별 전원 응답 완료 · 추천 " + dates.length + "개 · 미응답 날짜는 제외합니다.");
             model(recommendationTable).setRowCount(0);
             SongRecommendation[] recommended = SongRecommender.recommend(songs, members);
+            currentRecommendations = recommended;
             for (int i = 0; i < recommended.length; i++) {
                 SongRecommendation r = recommended[i]; Song song = r.getSong();
-                model(recommendationTable).addRow(new Object[] {i + 1, song.getId(), song.getTitle(), song.getArtist(), r.getApprovals(), r.getTotalBurden(), r.getScore()});
+                model(recommendationTable).addRow(new Object[] {i + 1, song.getTitle(), song.getArtist(), r.getApprovals(), r.getTotalBurden(), r.getScore()});
             }
             confirmButton.setText(editingPlanId < 0 ? "선택한 날짜와 곡으로 계획 확정" : "선택 계획 수정 확정");
             cancelPlanEdit.setVisible(editingPlanId >= 0);
@@ -606,13 +679,17 @@ public final class DesktopUI extends JFrame {
             if (recommended.length == 0) recommendationNotice.setText(recommendationNotice.getText() + " / 추천 자격을 충족하는 곡이 없습니다.");
             int oldRow = plansTable.getSelectedRow();
             int selectedId = oldRow < 0 ? -1 : (Integer) plansTable.getValueAt(oldRow, 0);
+            upcomingPlansButton.setText(showPastPlans ? "예정된 계획" : "✓ 예정된 계획");
+            pastPlansButton.setText(showPastPlans ? "✓ 이전 내역" : "이전 내역");
             model(plansTable).setRowCount(0); int selectedPlanRow = -1;
             for (ConfirmedPlan entry : app.getConfirmedPlans()) {
                 RehearsalPlan plan = entry.plan();
+                if (plan.getDate().isBefore(LocalDate.now()) != showPastPlans) continue;
                 if (entry.id() == selectedId) selectedPlanRow = plansTable.getRowCount();
-                model(plansTable).addRow(new Object[] {entry.id(), plan.getDate(), plan.getAttendees().length + "/6", plan.getSongs().length});
+                model(plansTable).addRow(new Object[] {entry.id(), plan.getDate(), plan.getLocation().isEmpty() ? "미정" : plan.getLocation(),
+                    plan.getAttendees().length + "/" + (plan.getAttendees().length + plan.getAbsentees().length), plan.getSongs().length});
             }
-            if (selectedPlanRow < 0 && selectedId < 0 && plansTable.getRowCount() > 0) selectedPlanRow = 0;
+            if (selectedPlanRow < 0 && plansTable.getRowCount() > 0) selectedPlanRow = 0;
             if (selectedPlanRow >= 0) plansTable.setRowSelectionInterval(selectedPlanRow, selectedPlanRow);
             showSelectedPlan();
         } finally { refreshing = false; }

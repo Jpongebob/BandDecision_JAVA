@@ -168,7 +168,9 @@ public final class UiTheme {
                 boolean selected = Boolean.TRUE.equals(button.getClientProperty("calendar.selected"));
                 boolean focused = Boolean.TRUE.equals(button.getClientProperty("calendar.focused"));
                 g.setColor(button.getBackground()); g.fillRoundRect(1, 1, w - 2, h - 2, 20, 20);
-                g.setColor(selected || focused || button.isFocusOwner() ? ACCENT : LINE);
+                boolean confirmed = Boolean.TRUE.equals(button.getClientProperty("calendar.confirmed"));
+                g.setColor(selected || focused || button.isFocusOwner() ? ACCENT
+                    : confirmed ? new Color(172, 133, 218) : LINE);
                 g.setStroke(new BasicStroke(selected || focused ? 1.6f : 1f));
                 g.drawRoundRect(1, 1, w - 3, h - 3, 20, 20);
                 if (button.isEnabled() && button.getModel().isRollover()) {
@@ -176,17 +178,16 @@ public final class UiTheme {
                 }
                 String number = String.valueOf(button.getClientProperty("calendar.number"));
                 String status = String.valueOf(button.getClientProperty("calendar.status"));
-                boolean confirmed = Boolean.TRUE.equals(button.getClientProperty("calendar.confirmed"));
                 Font numberFont = button.getFont().deriveFont(Font.BOLD);
                 Font statusFont = button.getFont().deriveFont(Font.PLAIN, Math.max(11f, button.getFont().getSize2D() * 0.72f));
                 int totalHeight = g.getFontMetrics(numberFont).getHeight() + (status.isEmpty() ? 0 : g.getFontMetrics(statusFont).getHeight());
                 int y = Math.max(3, (h - totalHeight) / 2);
-                g.setFont(numberFont); g.setColor(button.isEnabled() ? selected ? ACCENT : button.getForeground() : new Color(164, 174, 192));
+                g.setFont(numberFont); g.setColor(Color.BLACK);
                 y += g.getFontMetrics().getAscent();
                 g.drawString(number, (w - g.getFontMetrics().stringWidth(number)) / 2, y);
                 if (!status.isEmpty()) {
                     y += g.getFontMetrics().getDescent(); g.setFont(statusFont);
-                    g.setColor(confirmed && button.isEnabled() ? new Color(18, 112, 91) : button.getForeground());
+                    g.setColor(Color.BLACK);
                     y += g.getFontMetrics().getAscent();
                     g.drawString(status, (w - g.getFontMetrics().stringWidth(status)) / 2, y);
                 }

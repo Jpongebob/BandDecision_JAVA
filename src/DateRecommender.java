@@ -5,7 +5,7 @@ public final class DateRecommender {
     private DateRecommender() { }
     public static int attendance(AttendanceService service, LocalDate date) {
         int count = 0;
-        for (int i = 0; i < 6; i++) if (service.response(i, date) == AttendanceService.AVAILABLE) count++;
+        for (int i = 0; i < service.getMemberCount(); i++) if (service.response(i, date) == AttendanceService.AVAILABLE) count++;
         return count;
     }
     public static DateRecommendation[] recommend(AttendanceService service, LocalDate today) {

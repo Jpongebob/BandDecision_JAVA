@@ -5,9 +5,9 @@ public final class SongRecommendation {
     private final int approvals;
     public SongRecommendation(Song song, Member[] members) {
         this.song = song;
-        burdens = new int[6];
+        burdens = new int[members.length];
         int total = 0;
-        for (int i = 0; i < 6; i++) { burdens[i] = Math.max(0, song.getDifficulty(i) - members[i].getSkill()); total += burdens[i]; }
+        for (int i = 0; i < members.length; i++) { burdens[i] = Math.max(0, song.getDifficulty(i) - members[i].getSkill()); total += burdens[i]; }
         totalBurden = total;
         approvals = song.count(Song.YES);
     }

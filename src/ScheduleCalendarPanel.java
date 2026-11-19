@@ -25,7 +25,7 @@ import javax.swing.table.DefaultTableModel;
 public final class ScheduleCalendarPanel extends JPanel {
     private static final long serialVersionUID = 1L;
     private final AttendanceService attendance;
-    private final Member[] members;
+    private Member[] members;
     private final Runnable changed;
     private final Supplier<ConfirmedPlan[]> plans;
     private final JButton[] days = new JButton[42];
@@ -93,7 +93,7 @@ public final class ScheduleCalendarPanel extends JPanel {
         String[] labels = {"일", "월", "화", "수", "목", "금", "토"};
         for (int i = 0; i < 7; i++) {
             JLabel label = new JLabel(labels[i], JLabel.CENTER);
-            label.setForeground(i == 0 ? new Color(177, 67, 60) : i == 6 ? new Color(54, 101, 156) : UiTheme.MUTED);
+            label.setForeground(Color.BLACK);
             weekdays.add(label);
         }
         heading.add(weekdays, BorderLayout.SOUTH); calendar.add(heading, BorderLayout.NORTH);
@@ -125,7 +125,7 @@ public final class ScheduleCalendarPanel extends JPanel {
         detailTop.add(recordedDatePicker, BorderLayout.SOUTH);
         detail.add(detailTop, BorderLayout.NORTH);
         detail.add(UiTheme.scroll(responses), BorderLayout.CENTER);
-        if (bulkMember.getItemCount() == 0) for (Member member : members) bulkMember.addItem(member.getPart());
+        if (bulkMember.getItemCount() == 0) for (Member member : members) bulkMember.addItem(member.displayName());
         if (memberSelector == null) UiTheme.styleCombo(bulkMember);
         bulkMember.setToolTipText("일정을 입력하고 투표할 멤버");
         bulkMember.setPreferredSize(new Dimension(130, 36));
@@ -146,11 +146,14 @@ public final class ScheduleCalendarPanel extends JPanel {
             UiTheme.styleButton(applyButtons[choice], choice == AttendanceService.AVAILABLE);
             apply.add(applyButtons[choice]);
         }
-        JPanel bulkControls = new JPanel(new BorderLayout(0, 4)); bulkControls.setOpaque(false);
-        bulkControls.add(bulkFields, BorderLayout.NORTH); bulkControls.add(apply, BorderLayout.CENTER);
+        JPanel bulkControls = new JPanel(new BorderLayout(0, 6)); bulkControls.setOpaque(false);
+        JPanel applyArea = new JPanel(new BorderLayout(0, 4)); applyArea.setOpaque(false);
+        guidance.setForeground(UiTheme.INK);
+        applyArea.add(guidance, BorderLayout.NORTH);
+        applyArea.add(apply, BorderLayout.CENTER);
+        bulkControls.add(bulkFields, BorderLayout.NORTH); bulkControls.add(applyArea, BorderLayout.CENTER);
         undo = action("마지막 응답 되돌리기", this::undoLastResponse);
         undo.setToolTipText("이번 실행의 마지막 일정 응답·사유 변경을 한 번 복원하고 자동 저장합니다.");
-        bulkControls.add(guidance, BorderLayout.SOUTH);
         detail.add(bulkControls, BorderLayout.SOUTH);
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, calendar, detail);
         split.setBorder(BorderFactory.createEmptyBorder()); split.setResizeWeight(0.58); split.setDividerSize(16);
@@ -162,8 +165,12 @@ public final class ScheduleCalendarPanel extends JPanel {
         footer.add(action("오늘", () -> selectDate(LocalDate.now())), BorderLayout.WEST);
         footer.add(action("선택 해제", this::clearSelection), BorderLayout.EAST);
         footer.add(selectionInfo, BorderLayout.CENTER);
-        JLabel legend = new JLabel("<html>파랑 · 내 가능　빨강 · 내 불가<br>초록 · 전원 가능　확정 · 합주 계획　✓ · 적용할 날짜</html>");
-        legend.setForeground(UiTheme.MUTED);
+        JPanel legend = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 9, 0)); legend.setOpaque(false);
+        legend.add(legendItem("●", new Color(45, 97, 235), "내 가능"));
+        legend.add(legendItem("●", new Color(190, 62, 54), "내 불가"));
+        legend.add(legendItem("●", new Color(18, 112, 91), "전원 가능"));
+        legend.add(legendItem("●", new Color(119, 73, 170), "합주 확정"));
+        legend.add(legendItem("✓", UiTheme.ACCENT, "적용할 날짜"));
         JPanel footerBottom = new JPanel(new BorderLayout(0, 8)); footerBottom.setOpaque(false);
         footerBottom.add(legend, BorderLayout.CENTER);
         JPanel undoRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 0, 0)); undoRow.setOpaque(false);
@@ -171,9 +178,16 @@ public final class ScheduleCalendarPanel extends JPanel {
         footer.add(footerBottom, BorderLayout.SOUTH);
         calendar.add(footer, BorderLayout.SOUTH);
         bulkMember.addActionListener(e -> {
-            if (!refreshing) { refresh(); memberSelectionListener.run(); }
+            if (!refreshing && bulkMember.getSelectedIndex() >= 0) { refresh(); memberSelectionListener.run(); }
         });
         refresh();
+    }
+
+    private static JPanel legendItem(String icon, Color color, String label) {
+        JPanel item = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 3, 0)); item.setOpaque(false);
+        JLabel symbol = new JLabel(icon); symbol.setForeground(color);
+        JLabel text = new JLabel(label); text.setForeground(UiTheme.MUTED);
+        item.add(symbol); item.add(text); return item;
     }
 
     private JButton selectionButton(String title, Runnable task) {
@@ -328,9 +342,14 @@ public final class ScheduleCalendarPanel extends JPanel {
     public String statusFor(LocalDate date) {
         if (!inWindow(date)) return date.isBefore(LocalDate.now()) ? "지난 날짜" : "추천 기간 밖";
         int pending = attendance.count(date, AttendanceService.UNANSWERED);
-        if (pending > 0) return pending == 6 ? "미응답" : "대기 " + pending + "명";
+        if (pending > 0) return pending == members.length ? "미응답" : "대기 " + pending + "명";
         int available = attendance.count(date, AttendanceService.AVAILABLE);
-        return available == 6 ? "합주 가능" : "가능 " + available + "/6명";
+        return available == members.length ? "합주 가능" : "가능 " + available + "/" + members.length + "명";
+    }
+    public void setMembers(Member[] members) {
+        this.members = members;
+        undoState = null;
+        refresh();
     }
     private String planSummary(LocalDate date) {
         StringBuilder result = new StringBuilder();
@@ -361,7 +380,7 @@ public final class ScheduleCalendarPanel extends JPanel {
             rangeMode.setForeground(rangeSelection ? UiTheme.ACCENT : UiTheme.MUTED);
             wholeMonth.setForeground(UiTheme.ACCENT);
             wholeMonth.setToolTipText(month.getMonthValue() + "월의 오늘 이후 날짜 전체 선택 · 다시 누르면 해제");
-            selectionInfo.setText("  " + selectedDays.length + "일 선택" + (rangeStart != null ? " · 종료일을 누르세요" : ""));
+            selectionInfo.setText("  적용할 날짜 " + selectedDays.length + "일 선택" + (rangeStart != null ? " · 종료일을 누르세요" : ""));
             for (JButton button : applyButtons) button.setEnabled(selectedDays.length > 0 && rangeStart == null);
             undo.setEnabled(undoState != null);
             boolean outside = false;
@@ -380,7 +399,7 @@ public final class ScheduleCalendarPanel extends JPanel {
                 JButton button = days[i]; int day = i - offset + 1;
                 boolean valid = day >= 1 && day <= month.lengthOfMonth(); button.setVisible(valid);
                 if (!valid) { button.putClientProperty("date", null); continue; }
-                LocalDate date = month.atDay(day); boolean recorded = hasDate(date);
+                LocalDate date = month.atDay(day);
                 boolean past = date.isBefore(LocalDate.now()); button.setEnabled(!past);
                 button.putClientProperty("date", date);
                 String confirmed = planSummary(date);
@@ -395,26 +414,30 @@ public final class ScheduleCalendarPanel extends JPanel {
                 int mine = attendance.response(bulkMember.getSelectedIndex(), date);
                 Color background = mine == AttendanceService.AVAILABLE ? new Color(222, 234, 255)
                     : mine == AttendanceService.UNAVAILABLE ? new Color(255, 229, 225) : Color.WHITE;
-                if (inWindow(date) && attendance.count(date, AttendanceService.AVAILABLE) == 6)
+                if (inWindow(date) && attendance.count(date, AttendanceService.AVAILABLE) == members.length)
                     background = new Color(219, 242, 232);
                 if (mine == AttendanceService.UNANSWERED && isSelected(date)) background = new Color(240, 235, 255);
-                if (past) background = UiTheme.SOFT;
+                if (!confirmed.isEmpty()) background = new Color(235, 225, 252);
+                else if (past) background = UiTheme.SOFT;
                 button.setBackground(background);
-                String ownResponse = members[bulkMember.getSelectedIndex()].getPart() + ": " + AttendanceService.label(mine);
+                String ownResponse = members[bulkMember.getSelectedIndex()].displayName() + ": " + AttendanceService.label(mine);
                 String planText = confirmed.isEmpty() ? "" : " · 확정 계획 " + confirmed;
                 button.setToolTipText(date + " · " + ownResponse + " · " + statusFor(date) + planText);
                 button.getAccessibleContext().setAccessibleName(date + " " + ownResponse + " " + statusFor(date) + planText);
-                button.setForeground(recorded && inWindow(date) ? UiTheme.ACCENT : inWindow(date) ? UiTheme.INK : UiTheme.MUTED);
+                button.setForeground(Color.BLACK);
             }
             detailTitle.setText(selectedDate.format(DateTimeFormatter.ofPattern("M월 d일 (E)", java.util.Locale.KOREAN)));
             responses.setEnabled(inWindow(selectedDate));
             String selectedPlans = planSummary(selectedDate);
             detailStatus.setText(statusFor(selectedDate) + (selectedPlans.isEmpty() ? "" : " · 확정 계획 " + selectedPlans));
             detailStatus.setForeground(UiTheme.ACCENT);
-            guidance.setText("<html>선택 " + selectedDays.length + "일에 적용<br>표 직접 편집은 " + selectedDate.getMonthValue() + "/" + selectedDate.getDayOfMonth() + " 하루만 변경</html>");
+            String target = members[bulkMember.getSelectedIndex()].displayName();
+            guidance.setText("<html>" + target + " · 선택한 " + selectedDays.length + "일에 적용"
+                + (rangeStart != null ? " (종료일을 선택하세요)" : "")
+                + "<br>위 응답표를 직접 편집하면 " + selectedDate.getMonthValue() + "/" + selectedDate.getDayOfMonth() + " 하루만 변경됩니다.</html>");
             DefaultTableModel model = (DefaultTableModel) responses.getModel(); model.setRowCount(0);
-            for (int member = 0; member < 6; member++) model.addRow(new Object[] {
-                members[member].getPart(), AttendanceService.label(attendance.response(member, selectedDate)),
+            for (int member = 0; member < members.length; member++) model.addRow(new Object[] {
+                members[member].displayName(), AttendanceService.label(attendance.response(member, selectedDate)),
                 attendance.response(member, selectedDate) == AttendanceService.UNAVAILABLE ? attendance.reason(member, selectedDate) : ""});
             revalidate(); repaint();
         } finally { refreshing = false; }

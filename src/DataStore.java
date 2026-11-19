@@ -26,9 +26,16 @@ public final class DataStore {
             String version = required(p, "version");
             if (!version.equals("1") && !version.equals("2") && !version.equals("3")) throw new IllegalArgumentException("지원하지 않는 저장 파일 버전입니다.");
             BandDecision app = new BandDecision();
-            for (int i = 0; i < 6; i++) {
+            int memberCount = p.getProperty("members") == null ? 6 : count(p, "members");
+            if (memberCount < 6 || memberCount > 64) throw new IllegalArgumentException("멤버 수가 올바르지 않습니다.");
+            for (int i = 0; i < memberCount; i++) {
                 String key = "member." + i + ".";
-                app.getMembers()[i].setSkill(integer(p, key + "skill"));
+                int skill = integer(p, key + "skill");
+                if (i < 6) {
+                    app.getMembers()[i].setSkill(skill);
+                    if (p.getProperty(key + "part") != null) app.getMembers()[i].setPart(required(p, key + "part"));
+                    app.getMembers()[i].setName(p.getProperty(key + "name", ""));
+                } else app.addMember(p.getProperty(key + "name", ""), required(p, key + "part"), skill);
             }
             if (!version.equals("1")) {
                 int dateCount = count(p, "candidates");
@@ -37,7 +44,7 @@ public final class DataStore {
                     LocalDate date = LocalDate.parse(required(p, key + "date"));
                     if (java.util.Arrays.asList(app.getAttendance().getDates()).contains(date))
                         throw new IllegalArgumentException("중복 후보 날짜");
-                    for (int member = 0; member < 6; member++) {
+                    for (int member = 0; member < memberCount; member++) {
                         int answer = integer(p, key + "answer." + member);
                         app.getAttendance().respond(member, date, answer,
                             answer == AttendanceService.UNAVAILABLE ? required(p, key + "reason." + member) : "");
@@ -47,10 +54,10 @@ public final class DataStore {
             int songCount = count(p, "songs");
             for (int i = 0; i < songCount; i++) {
                 String key = "song." + i + ".";
-                int[] difficulty = new int[6];
-                for (int member = 0; member < 6; member++) difficulty[member] = integer(p, key + "difficulty." + member);
+                int[] difficulty = new int[memberCount];
+                for (int member = 0; member < memberCount; member++) difficulty[member] = integer(p, key + "difficulty." + member);
                 Song song = app.getSongs().restore(integer(p, key + "id"), required(p, key + "title"), required(p, key + "artist"), difficulty);
-                for (int member = 0; member < 6; member++) {
+                for (int member = 0; member < memberCount; member++) {
                     int vote = integer(p, key + "vote." + member);
                     if (vote != Song.UNANSWERED) song.vote(member, vote, vote == Song.NO ? required(p, key + "reason." + member) : "");
                 }
@@ -77,16 +84,20 @@ public final class DataStore {
     public void save(BandDecision app) throws IOException {
         Properties p = new Properties();
         p.setProperty("version", "3");
-        for (int i = 0; i < 6; i++) {
+        Member[] members = app.getMembers();
+        p.setProperty("members", "" + members.length);
+        for (int i = 0; i < members.length; i++) {
             String key = "member." + i + ".";
-            p.setProperty(key + "skill", "" + app.getMembers()[i].getSkill());
+            p.setProperty(key + "skill", "" + members[i].getSkill());
+            p.setProperty(key + "part", members[i].getPart());
+            p.setProperty(key + "name", members[i].getName());
         }
         LocalDate[] dates = app.getAttendance().getDates();
         p.setProperty("candidates", "" + dates.length);
         for (int i = 0; i < dates.length; i++) {
             String key = "candidate." + i + ".";
             p.setProperty(key + "date", dates[i].toString());
-            for (int member = 0; member < 6; member++) {
+            for (int member = 0; member < members.length; member++) {
                 int answer = app.getAttendance().response(member, dates[i]);
                 p.setProperty(key + "answer." + member, "" + answer);
                 if (answer == AttendanceService.UNAVAILABLE) p.setProperty(key + "reason." + member, app.getAttendance().reason(member, dates[i]));
@@ -101,7 +112,7 @@ public final class DataStore {
             p.setProperty(key + "id", "" + song.getId());
             p.setProperty(key + "title", song.getTitle());
             p.setProperty(key + "artist", song.getArtist());
-            for (int member = 0; member < 6; member++) {
+            for (int member = 0; member < members.length; member++) {
                 p.setProperty(key + "difficulty." + member, "" + song.getDifficulty(member));
                 p.setProperty(key + "vote." + member, "" + song.getVote(member));
                 if (song.getVote(member) == Song.NO) p.setProperty(key + "reason." + member, song.getReason(member));
@@ -114,6 +125,7 @@ public final class DataStore {
             p.setProperty(key + ".id", "" + plans[i].id());
             RehearsalPlan plan = plans[i].plan();
             p.setProperty(key + ".date", plan.getDate().toString());
+            p.setProperty(key + ".location", plan.getLocation());
             writeArray(p, key + ".attendees", plan.getAttendees());
             writeArray(p, key + ".absentees", plan.getAbsentees());
             writeArray(p, key + ".songs", plan.getSongs());
@@ -150,7 +162,7 @@ public final class DataStore {
     }
     private static RehearsalPlan readPlan(Properties p, String key) {
         return new RehearsalPlan(LocalDate.parse(required(p, key + ".date")), readArray(p, key + ".attendees"),
-            readArray(p, key + ".absentees"), readArray(p, key + ".songs"));
+            readArray(p, key + ".absentees"), readArray(p, key + ".songs"), p.getProperty(key + ".location", ""));
     }
     private static int integer(Properties p, String key) { return Integer.parseInt(required(p, key)); }
     private static int count(Properties p, String key) {

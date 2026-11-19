@@ -3,6 +3,7 @@ import java.util.Arrays;
 public final class SongService {
     private Song[] songs = new Song[0];
     private int nextId = 1;
+    void addMember() { for (Song song : songs) song.addMember(); }
     public Song register(String title, String artist, int[] difficulties) {
         return restore(nextId, title, artist, difficulties);
     }

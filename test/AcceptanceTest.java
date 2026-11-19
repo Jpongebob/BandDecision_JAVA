@@ -356,6 +356,87 @@ public final class AcceptanceTest {
         }
 
     }
+    private static void dynamicMembers() throws Exception {
+        BandDecision app = new BandDecision();
+        LocalDate day = LocalDate.now().plusDays(1);
+        for (int i = 0; i < 6; i++) app.getAttendance().respond(i, day, AttendanceService.AVAILABLE, "");
+        Song song = app.getSongs().register("추가 멤버 검사", "밴드", new int[] {2, 2, 2, 2, 2, 2});
+        for (int i = 0; i < 6; i++) song.vote(i, Song.YES, "");
+        check(DateRecommender.recommend(app.getAttendance(), LocalDate.now()).length == 1 && song.eligible(),
+            "기존 6명 응답·투표 완료");
+        app.addMember("민수", "기타", 3);
+        check(app.getMembers().length == 7 && app.getAttendance().getMemberCount() == 7
+            && app.getMembers()[6].displayName().equals("민수 · 기타") && song.getDifficulty(6) == 3,
+            "같은 파트 7번째 멤버 추가와 기본 난이도");
+        check(DateRecommender.recommend(app.getAttendance(), LocalDate.now()).length == 0
+            && !song.eligible() && song.getVote(6) == Song.UNANSWERED,
+            "새 멤버의 미응답은 날짜·곡 추천에서 제외");
+        app.getAttendance().respond(6, day, AttendanceService.AVAILABLE, ""); song.vote(6, Song.YES, "");
+        check(DateRecommender.recommend(app.getAttendance(), LocalDate.now()).length == 1
+            && SongRecommender.recommend(app.getSongs(), app.getMembers()).length == 1,
+            "7명 전원 응답 후 날짜·곡 추천 복귀");
+        Song threshold = app.getSongs().register("찬성 기준 검사", "밴드", new int[] {2, 2, 2, 2, 2, 2, 2});
+        for (int i = 0; i < 7; i++) threshold.vote(i, i < 4 ? Song.YES : Song.NO, i < 4 ? "" : "의견 다름");
+        check(!threshold.eligible(), "7명일 때 찬성 4명은 2/3 미만이라 추천 제외");
+        threshold.vote(4, Song.YES, "");
+        check(threshold.eligible(), "7명일 때 찬성 5명은 2/3 이상이라 추천");
+        RehearsalPlan sevenMemberPlan = app.preview(day, new int[] {song.getId()}, LocalDate.now(), "합주실");
+        app.confirm(day, new int[] {song.getId()}, LocalDate.now(), "합주실", sevenMemberPlan, false);
+        check(sevenMemberPlan.getAttendees().length == 7
+            && java.util.Arrays.asList(sevenMemberPlan.getAttendees()).contains("민수 · 기타"),
+            "7명 확정 계획에 같은 파트 멤버 이름 보존");
+        app.getMembers()[0].setPart("보컬");
+        Path directory = Files.createTempDirectory("banddecision-members-");
+        try {
+            DataStore store = new DataStore(directory.resolve("members.properties")); store.save(app);
+            BandDecision restored = store.load();
+            check(restored.getMembers().length == 7 && restored.getMembers()[0].getPart().equals("보컬")
+                && restored.getMembers()[6].displayName().equals("민수 · 기타") && restored.getSongs().find(song.getId()).getVote(6) == Song.YES
+                && restored.getAttendance().response(6, day) == AttendanceService.AVAILABLE
+                && restored.findPlan(1).plan().getAttendees().length == 7,
+                "7명 파트·투표·일정 저장 후 복원");
+        } finally { Files.deleteIfExists(directory.resolve("members.properties")); Files.delete(directory); }
+    }
+    private static void planLocation() throws Exception {
+        BandDecision app = new BandDecision();
+        LocalDate day = LocalDate.now().plusDays(1);
+        for (int i = 0; i < 6; i++) app.getAttendance().respond(i, day, AttendanceService.AVAILABLE, "");
+        Song song = app.getSongs().register("장소 검사곡", "밴드", new int[] {2, 2, 2, 2, 2, 2});
+        for (int i = 0; i < 6; i++) song.vote(i, Song.YES, "");
+        int[] ids = {song.getId()};
+        RehearsalPlan approved = app.preview(day, ids, LocalDate.now(), "  연습실 A  ");
+        check(approved.getLocation().equals("연습실 A") && approved.describe().contains("장소: 연습실 A"),
+            "합주 장소 공백 정리·상세 표시");
+        rejects(() -> app.confirm(day, ids, LocalDate.now(), "연습실 B", approved, false),
+            "확인 후 장소가 바뀌면 확정 거부");
+        app.confirm(day, ids, LocalDate.now(), "연습실 A", approved, false);
+        Path directory = Files.createTempDirectory("banddecision-location-");
+        try {
+            DataStore store = new DataStore(directory.resolve("location.properties")); store.save(app);
+            BandDecision restored = store.load();
+            check(restored.findPlan(1).plan().getLocation().equals("연습실 A"), "합주 장소 저장·복원");
+            Properties previousFormat = new Properties();
+            try (java.io.Reader reader = Files.newBufferedReader(store.getFile(), StandardCharsets.UTF_8)) {
+                previousFormat.load(reader);
+            }
+            previousFormat.remove("members"); previousFormat.remove("plan.0.location");
+            for (int i = 0; i < 6; i++) {
+                previousFormat.remove("member." + i + ".name");
+                previousFormat.remove("member." + i + ".part");
+            }
+            Path oldFile = directory.resolve("old-v3.properties");
+            try (java.io.Writer writer = Files.newBufferedWriter(oldFile, StandardCharsets.UTF_8)) {
+                previousFormat.store(writer, "old v3 without member and location properties");
+            }
+            BandDecision old = new DataStore(oldFile).load();
+            check(old.getMembers().length == 6 && old.findPlan(1).plan().getLocation().isEmpty(),
+                "이전 v3 파일에 멤버 수·장소 속성이 없어도 6명·장소 미정으로 복원");
+            RehearsalPlan changed = restored.preview(day, ids, LocalDate.now(), "연습실 B");
+            restored.updatePlan(1, day, ids, LocalDate.now(), "연습실 B", changed, false);
+            check(restored.findPlan(1).plan().getLocation().equals("연습실 B"), "기존 계획 장소 수정");
+        } finally { Files.deleteIfExists(directory.resolve("location.properties"));
+            Files.deleteIfExists(directory.resolve("old-v3.properties")); Files.delete(directory); }
+    }
     public static void main(String[] args) throws Exception {
         for (LocalDate today : new LocalDate[] {LocalDate.now(), LocalDate.of(2026, 12, 31), LocalDate.of(2028, 2, 29)}) {
             BandDecision demo = DemoData.createPresentation(today);
@@ -371,7 +452,7 @@ public final class AcceptanceTest {
                 "발표 샘플 추천 자격 곡 4개: " + today);
         }
         songs(); attendance(); plans(); persistence();
-        songManagement(); planManagement();
+        songManagement(); planManagement(); dynamicMembers(); planLocation();
         System.out.println("PASS: " + checks + " checks (scheduling + songs + persistence)");
     }
 }

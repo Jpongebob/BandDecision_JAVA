@@ -76,7 +76,7 @@ public final class GuiSmokeTest {
             JTable table = find(calendar, JTable.class, "파트");
             check(table.editCellAt(0, 2), "지금 저장 전 사유 편집 시작");
             ((javax.swing.JTextField) table.getEditorComponent()).setText("지금 저장할 사유");
-            find(frame, JButton.class, "지금 저장").doClick();
+            find(frame, JButton.class, "저장 다시 시도").doClick();
             try {
                 check("지금 저장할 사유".equals(new DataStore(file).load().getAttendance().reason(0, today))
                     && !table.isEditing(), "지금 저장은 포커스 이동 없이도 편집 확정 후 저장");
@@ -124,7 +124,7 @@ public final class GuiSmokeTest {
             check(!app.getAttendance().isSubmitted(0), "이번 달만 응답하면 두 달 기간 완료 아님");
             calendar.showMonth(1); calendar.selectWholeMonth(); calendar.applySelected(0, AttendanceService.UNAVAILABLE, "여행");
             check(app.getAttendance().isSubmitted(0) && !app.getAttendance().isSubmitted(1)
-                && hasLabel(frame, "응답 완료") && hasLabel(frame, "남성 보컬 · " + ScheduleWindow.label(today)),
+                && hasLabel(frame, "응답 완료") && hasLabel(frame, "남성 보컬 · " + ScheduleWindow.label(today) + " 전체 날짜 기준"),
                 "기간 전체 응답 완료·대상과 고정 범위 표시");
             byte[] saved;
             try { saved = Files.readAllBytes(file); } catch (java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
@@ -190,10 +190,18 @@ public final class GuiSmokeTest {
             WorkspaceView workspace = find(frame, WorkspaceView.class, null);
             ScheduleCalendarPanel calendar = find(frame, ScheduleCalendarPanel.class, null);
             javax.swing.JComboBox<?> profile = findMemberCombo(frame);
-            check(profile == calendar.memberSelector(), "상단 멤버 선택을 일정과 공유·중복 선택기 없음");
+            frame.validate(); layoutAll(frame.getContentPane());
+            JButton scheduleLink = find(workspace, JButton.class, "일정");
+            java.awt.Point selectorBottom = SwingUtilities.convertPoint(profile.getParent(),
+                profile.getX(), profile.getY() + profile.getHeight(), workspace);
+            java.awt.Point scheduleTop = SwingUtilities.convertPoint(scheduleLink.getParent(),
+                scheduleLink.getX(), scheduleLink.getY(), workspace);
+            check(profile == calendar.memberSelector() && profile == workspace.memberSelector()
+                && SwingUtilities.isDescendingFrom(profile, workspace) && selectorBottom.y <= scheduleTop.y,
+                "입력 멤버 선택기를 BAND DECISION과 일정 버튼 사이에 배치·공유");
             find(workspace, JButton.class, "곡·투표").doClick();
             check(workspace.selected() == WorkspaceView.Page.SONGS, "왼쪽 곡·투표 버튼으로 한 화면 이동");
-            JTable candidates = find(workspace.page(WorkspaceView.Page.SONGS), JTable.class, "ID");
+            JTable candidates = find(workspace.page(WorkspaceView.Page.SONGS), JTable.class, "제목");
             JTable votes = find(workspace.page(WorkspaceView.Page.SONGS), JTable.class, "파트");
             candidates.setRowSelectionInterval(1, 1);
             check(votes.getRowCount() == 6 && hasLabel(frame, "별빛 산책 · 샘플 밴드 B"), "목록 선택으로 곡 상세·투표 즉시 연동");
@@ -216,7 +224,7 @@ public final class GuiSmokeTest {
             frame.refresh();
             check("갱신 중인 사유".equals(app.getAttendance().reason(3, LocalDate.now())),
                 "전체 갱신 시 편집 중인 일정 사유 확정");
-            check(candidates.getSelectedRow() >= 0 && candidates.getValueAt(candidates.getSelectedRow(), 0).equals(2)
+            check(candidates.getSelectedRow() >= 0 && candidates.getValueAt(candidates.getSelectedRow(), 0).equals("별빛 산책")
                 && votes.getRowCount() == 6 && votes.getSelectedRow() == 3,
                 "일정 편집 중 전체 갱신해도 선택 곡·투표 멤버 보존");
             modelAnswer(responses, "가능", 3, 1);
@@ -224,7 +232,7 @@ public final class GuiSmokeTest {
             find(workspace, JButton.class, "합주 계획").doClick();
             find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "새 합주 만들기").doClick();
             JTable dates = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "순위");
-            JTable songs = tableWithColumn(workspace.page(WorkspaceView.Page.PLANS), "곡 ID");
+            JTable songs = tableWithColumn(workspace.page(WorkspaceView.Page.PLANS), "제목");
             dates.setRowSelectionInterval(0, 0); songs.setRowSelectionInterval(0, 0);
             check(frame.isBuildingPlan(), "같은 합주 계획 메뉴에서 만들기로 전환");
             byte[] saved;
@@ -322,10 +330,57 @@ public final class GuiSmokeTest {
             }
             preview.showPlanBuilder();
             JTable dates = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "순위");
-            JTable songs = tableWithColumn(workspace.page(WorkspaceView.Page.PLANS), "곡 ID");
+            JTable songs = tableWithColumn(workspace.page(WorkspaceView.Page.PLANS), "제목");
             dates.setRowSelectionInterval(0, 0); songs.setRowSelectionInterval(0, 1);
             preview.validate(); layoutAll(preview.getContentPane()); render(preview, "workspace-builder");
         } finally { preview.dispose(); }
+    }
+    private static void dynamicMembersUi(Path directory) {
+        BandDecision app = new BandDecision();
+        app.getSongs().register("검사곡", "밴드", new int[] {2, 2, 2, 2, 2, 2});
+        DesktopUI frame = new DesktopUI(app, new DataStore(directory.resolve("dynamic-ui.properties")), false);
+        try {
+            WorkspaceView workspace = find(frame, WorkspaceView.class, null);
+            check(find(workspace.page(WorkspaceView.Page.SETTINGS), JButton.class, "멤버 추가") != null
+                && find(workspace.page(WorkspaceView.Page.SETTINGS), JButton.class, "선택 멤버 수정") != null,
+                "멤버 추가·수정 화면 제공");
+            frame.addMember("민수", "기타", 2);
+            ScheduleCalendarPanel calendar = find(frame, ScheduleCalendarPanel.class, null);
+            JTable responses = find(calendar, JTable.class, "파트");
+            JTable votes = find(workspace.page(WorkspaceView.Page.SONGS), JTable.class, "파트");
+            check(app.getMembers().length == 7 && responses.getRowCount() == 7 && votes.getRowCount() == 7
+                && findMemberCombo(frame).getItemCount() == 7, "멤버 추가 후 선택기·일정·투표 표 동시 확장");
+            frame.editMember(app.getMembers()[6], "민수", "보조 기타", 4);
+            check("민수 · 보조 기타".equals(responses.getValueAt(6, 0))
+                && "민수 · 보조 기타".equals(findMemberCombo(frame).getItemAt(6))
+                && app.getMembers()[6].getSkill() == 4, "멤버 이름·실력 수정 후 화면 동기화");
+            try {
+                frame.editMember(app.getMembers()[6], "잘못된 이름", " ", 2);
+                throw new AssertionError("빈 파트 수정이 허용됨");
+            } catch (IllegalArgumentException expected) {
+                check(app.getMembers()[6].displayName().equals("민수 · 보조 기타")
+                    && app.getMembers()[6].getSkill() == 4, "멤버 수정 검증 실패 시 원래 정보 보존");
+            }
+            app.restorePlan(1, new RehearsalPlan(LocalDate.now().minusDays(1),
+                new String[] {"보컬"}, new String[] {"기타 | 일정"}, new String[] {"검사곡 — 밴드"}));
+            app.restorePlan(2, new RehearsalPlan(LocalDate.now().plusDays(1),
+                new String[] {"보컬"}, new String[] {"기타 | 일정"}, new String[] {"검사곡 — 밴드"}, "합주실 A"));
+            frame.refresh();
+            JTable plans = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "계획 ID");
+            check(plans.getRowCount() == 1 && plans.getValueAt(0, 0).equals(2)
+                && "장소".equals(plans.getColumnName(2)) && "합주실 A".equals(plans.getValueAt(0, 2)),
+                "예정된 계획과 합주 장소를 기본 목록에 표시");
+            find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "이전 내역").doClick();
+            check(plans.getRowCount() == 1 && plans.getValueAt(0, 0).equals(1), "이전 내역에는 지난 계획만 표시");
+            find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "예정된 계획").doClick();
+            check(plans.getRowCount() == 1 && plans.getValueAt(0, 0).equals(2), "예정된 계획으로 다시 전환");
+            check(find(workspace.page(WorkspaceView.Page.PLANS), javax.swing.JTextField.class, null) != null
+                && hasLabel(workspace.page(WorkspaceView.Page.PLANS), "합주 장소"), "계획 작성 화면의 장소 입력란");
+            plans.setRowSelectionInterval(0, 0);
+            find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택 계획 수정").doClick();
+            check("합주실 A".equals(find(workspace.page(WorkspaceView.Page.PLANS), javax.swing.JTextField.class, null).getText()),
+                "확정 계획 수정 시 기존 합주 장소를 입력란에 채움");
+        } finally { frame.dispose(); }
     }
     public static void main(String[] args) throws Exception {
         if (java.awt.GraphicsEnvironment.isHeadless()) {
@@ -361,6 +416,7 @@ public final class GuiSmokeTest {
                 pendingEdits(directory);
                 completionAndUndo(directory);
                 workspaceFlows(directory);
+                dynamicMembersUi(directory);
                 BandDecision app = DemoData.create(LocalDate.now());
                 DesktopUI frame = new DesktopUI(app, new DataStore(file), true);
                 try {
@@ -369,14 +425,14 @@ public final class GuiSmokeTest {
                     check(find(workspace, JButton.class, "일정") != null && find(workspace, JButton.class, "곡·투표") != null
                         && find(workspace, JButton.class, "합주 계획") != null && find(workspace, JButton.class, "밴드 설정") != null,
                         "왼쪽 작업 메뉴와 설정 제공");
-                    JTable members = find(workspace.page(WorkspaceView.Page.SETTINGS), JTable.class, "파트");
+                    JTable members = find(workspace.page(WorkspaceView.Page.SETTINGS), JTable.class, "멤버 · 파트");
                     check(find(workspace, JButton.class, "데이터 백업") == null && find(workspace, JButton.class, "백업에서 복원") == null,
                         "밴드 설정에서 수동 백업·복원 제거");
-                    find(workspace, JButton.class, "지금 저장").doClick();
-                    check(Files.exists(file), "지금 저장 버튼은 현재 파일 저장");
+                    find(workspace, JButton.class, "저장 다시 시도").doClick();
+                    check(Files.exists(file), "저장 다시 시도 버튼은 현재 파일 저장");
                     check(members.getRowCount() == 6 && members.getValueAt(3, 1).equals("★☆☆☆☆"), "초기 멤버 표시");
-                    check(members.getValueAt(0, 2).equals("미응답") && hasLabel(frame, "응답 미완료")
-                        && hasLabel(frame, "남성 보컬 · " + ScheduleWindow.label(LocalDate.now())), "샘플 일부 날짜만 응답한 상태와 전체 기간 표시");
+                    check(members.getValueAt(0, 2).equals("응답 미완료") && hasLabel(frame, "응답 미완료")
+                        && hasLabel(frame, "남성 보컬 · " + ScheduleWindow.label(LocalDate.now()) + " 전체 날짜 기준"), "샘플 일부 날짜만 응답한 상태와 전체 기간 표시");
                     members.setRowSelectionInterval(3, 3);
                     JSpinner skill = find(workspace.page(WorkspaceView.Page.SETTINGS), JSpinner.class, null);
                     check(((Number) skill.getValue()).intValue() == 1, "선택 멤버 실력 입력칸 연동");
@@ -393,10 +449,10 @@ public final class GuiSmokeTest {
                     try {
                         byte[] beforeSwitch = Files.readAllBytes(file);
                         statusMember.setSelectedIndex(1);
-                        check(hasLabel(frame, "응답 미완료") && hasLabel(frame, "여성 보컬 · " + ScheduleWindow.label(LocalDate.now())),
+                        check(hasLabel(frame, "응답 미완료") && hasLabel(frame, "여성 보컬 · " + ScheduleWindow.label(LocalDate.now()) + " 전체 날짜 기준"),
                             "멤버 전환 시 해당 멤버의 미완료 상태 즉시 갱신");
                         statusMember.setSelectedIndex(0);
-                        check(hasLabel(frame, "응답 미완료") && hasLabel(frame, "남성 보컬 · " + ScheduleWindow.label(LocalDate.now())),
+                        check(hasLabel(frame, "응답 미완료") && hasLabel(frame, "남성 보컬 · " + ScheduleWindow.label(LocalDate.now()) + " 전체 날짜 기준"),
                             "원래 멤버로 돌아오면 해당 멤버 상태 복원");
                         check(java.util.Arrays.equals(beforeSwitch, Files.readAllBytes(file)), "멤버 선택 변경은 저장 데이터를 수정하지 않음");
                     } catch (java.io.IOException ex) { throw new java.io.UncheckedIOException(ex); }
@@ -405,12 +461,17 @@ public final class GuiSmokeTest {
                     calendar.selectDate(firstDay);
                     check(schedules.getRowCount() == 6 && schedules.getColumnCount() == 3, "선택한 날짜의 6명 응답·사유 표시");
                     check(calendar.statusFor(firstDay).equals("합주 가능"), "전원 가능 후보의 합주 가능 표시");
-                    JTable songs = find(workspace.page(WorkspaceView.Page.SONGS), JTable.class, "ID");
+                    JTable songs = find(workspace.page(WorkspaceView.Page.SONGS), JTable.class, "제목");
                     check(songs.getRowCount() == 4 && songs.getColumnCount() == 3
+                        && "제목".equals(songs.getColumnName(0))
+                        && songs.getValueAt(0, 2).toString().contains("찬 ")
                         && hasLabel(workspace.page(WorkspaceView.Page.SONGS), "남성 보컬  ★★★☆☆"), "간결한 곡 목록과 선택곡의 6파트 난이도");
                     JTable votes = find(workspace.page(WorkspaceView.Page.SONGS), JTable.class, "파트");
                     check(votes.getRowCount() == 6 && votes.getValueAt(5, 1).equals("반대"), "곡별 투표와 사유 표시");
                     JTable dates = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "순위");
+                    JTable recommendedSongs = tableWithColumn(workspace.page(WorkspaceView.Page.PLANS), "제목");
+                    check(recommendedSongs.getColumnCount() == 6 && "제목".equals(recommendedSongs.getColumnName(1)),
+                        "추천 곡 표에는 내부 ID 대신 곡 제목 표시");
                     check(dates.getRowCount() == 7, "등록한 후보 7개만 추천");
                     dates.setRowSelectionInterval(0, 0);
                     check(find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택한 날짜와 곡으로 계획 확정").isEnabled(), "추천 자격이 있으면 확정 가능");
@@ -449,7 +510,7 @@ public final class GuiSmokeTest {
                     modelAnswer(schedules, "미응답", 0, 1); frame.refresh();
                     check(app.getAttendance().response(0, firstDay) == 0 && dates.getRowCount() == 6
                         && calendar.statusFor(firstDay).equals("대기 1명"), "미응답 변경은 해당 날짜만 추천 제외·달력 대기 표시");
-                    check(members.getValueAt(0, 2).equals("미응답") && hasLabel(frame, "응답 미완료"),
+                    check(members.getValueAt(0, 2).equals("응답 미완료") && hasLabel(frame, "응답 미완료"),
                         "기록 날짜 중 미응답이 생기면 완료 표시 해제·다른 완료 날짜 추천 유지");
                     modelAnswer(schedules, "가능", 0, 1); frame.refresh();
                     check(dates.getRowCount() == 7, "응답 완료 후 GUI 추천 복원");
@@ -544,6 +605,9 @@ public final class GuiSmokeTest {
                     check(calendar.getSelectedDates().length == 5 && calendar.getSelectedDates()[0].equals(firstDay), "종료일을 먼저 눌러도 양끝 포함 기간 선택");
                     javax.swing.JComboBox<?> bulkMember = findMemberCombo(calendar);
                     bulkMember.setSelectedIndex(2);
+                    check(hasLabel(calendar, "<html>기타 · 선택한 5일에 적용<br>위 응답표를 직접 편집하면 "
+                        + firstDay.getMonthValue() + "/" + firstDay.getDayOfMonth() + " 하루만 변경됩니다.</html>"),
+                        "적용 버튼 위에 대상 멤버·선택 일수와 직접 편집 날짜 표시");
                     find(calendar, JButton.class, "불가 적용").doClick();
                     check(app.getAttendance().response(2, firstDay) == 2 && app.getAttendance().response(2, firstDay.plusDays(4)) == 2
                         && app.getAttendance().response(0, firstDay) == 1, "버튼으로 기간 전체 지정 멤버만 불가 적용");
@@ -603,13 +667,17 @@ public final class GuiSmokeTest {
                         app.confirm(day, new int[] {1, 2}, LocalDate.now(), approved, true);
                     }
                     frame.refresh();
+                    check(!app.getConfirmedPlans()[0].plan().describe().contains("[ID "),
+                        "확정 계획 설명에도 내부 곡 ID를 노출하지 않음");
                     check("합주 확정".equals(dayButton(calendar, firstDay).getClientProperty("calendar.status"))
                         && dayButton(calendar, firstDay).getToolTipText().contains("확정 계획 #3")
                         && hasLabel(calendar, calendar.statusFor(firstDay) + " · 확정 계획 #3"),
                         "확정 계획 날짜의 달력 표시·상세·툴팁");
                     check("합주 확정".equals(dayButton(calendar, original.getDates()[1]).getClientProperty("calendar.status"))
+                        && dayButton(calendar, original.getDates()[1]).getBackground().equals(new java.awt.Color(235, 225, 252))
+                        && dayButton(calendar, firstDay).getBackground().equals(new java.awt.Color(235, 225, 252))
                         && !Boolean.TRUE.equals(dayButton(calendar, original.getDates()[5]).getClientProperty("calendar.confirmed")),
-                        "확정된 날짜만 표시하고 다른 날짜는 기존 상태 유지");
+                        "확정 날짜는 개인 응답·전원 가능 여부와 관계없이 보라색으로 구분");
                     JTable plans = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "계획 ID");
                     check(plans.getRowCount() == 5 && !find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택한 날짜와 곡으로 계획 확정").isEnabled(),
                         "계획 5개 목록 표시·최대 개수 도달 시 신규 확정 비활성");
@@ -628,7 +696,8 @@ public final class GuiSmokeTest {
                     check(plans.getValueAt(2, 0).equals(3) && plans.getValueAt(2, 1).equals(revisedDate), "계획 수정 후 ID·표 갱신");
                     app.deletePlan(2); frame.refresh();
                     check(!Boolean.TRUE.equals(dayButton(calendar, original.getDates()[1]).getClientProperty("calendar.confirmed"))
-                        && !dayButton(calendar, original.getDates()[1]).getToolTipText().contains("확정 계획 #2"),
+                        && !dayButton(calendar, original.getDates()[1]).getToolTipText().contains("확정 계획 #2")
+                        && !dayButton(calendar, original.getDates()[1]).getBackground().equals(new java.awt.Color(235, 225, 252)),
                         "계획 삭제 후 해당 날짜 확정 표시 제거");
                     check(plans.getRowCount() == 4 && plans.getValueAt(plans.getSelectedRow(), 0).equals(3), "중간 계획 삭제 후 선택 대상 ID 유지");
                     check(find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택 계획 삭제") != null, "확정 계획 삭제 버튼 제공");
@@ -640,10 +709,10 @@ public final class GuiSmokeTest {
                     songs.setRowSelectionInterval(1, 1);
                     app.getSongs().update(2, "수정한 후보곡", "수정한 아티스트", new int[] {2, 2, 2, 1, 2, 2});
                     frame.refresh();
-                    check(songs.getValueAt(1, 1).equals("수정한 후보곡") && hasLabel(workspace.page(WorkspaceView.Page.SONGS), "수정한 후보곡 · 수정한 아티스트"),
+                    check(songs.getValueAt(1, 0).equals("수정한 후보곡") && hasLabel(workspace.page(WorkspaceView.Page.SONGS), "수정한 후보곡 · 수정한 아티스트"),
                         "서비스 수정 후 후보곡 표·투표 선택지 갱신");
                     app.getSongs().delete(1); frame.refresh();
-                    check(songs.getRowCount() == 3 && songs.getValueAt(0, 0).equals(2)
+                    check(songs.getRowCount() == 3 && songs.getValueAt(0, 0).equals("수정한 후보곡")
                         && songs.getSelectedRow() == 0 && votes.getRowCount() == 6,
                         "앞 곡 삭제 후에도 선택한 투표 곡은 ID로 유지");
                     app.getSongs().delete(2); frame.refresh();
@@ -664,7 +733,7 @@ public final class GuiSmokeTest {
                 "달력 응답 변경과 후보 상태의 파일 저장 복원");
             System.out.println("PASS: " + checks + " Swing checks");
         } finally {
-            Files.deleteIfExists(file); Files.deleteIfExists(directory);
+            Files.deleteIfExists(file); Files.deleteIfExists(directory.resolve("dynamic-ui.properties")); Files.deleteIfExists(directory);
         }
     }
 }

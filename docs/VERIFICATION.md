@@ -1,5 +1,72 @@
 # 검증 기록
 
+## V-20261119-05: Git 게시 전 재검사
+
+- Windows PowerShell에서 `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test`를 다시 실행했다. `PASS: 170 checks (scheduling + songs + persistence)`와 `PASS: 198 Swing checks`, 종료 코드 0이었다. 같은 검사의 재실행이므로 기존 368개에 합산하지 않는다.
+- `git diff --cached --check`는 공백 오류 없이 종료 코드 0이었다. `data/`와 `out/`은 `.gitignore`에 따라 Git 대상에서 제외된 것을 확인했다. 이 검사는 실제 네이티브 마우스 조작이나 원격 게시 결과를 검증한 것은 아니다.
+
+## V-20261119-04: H50 제출용 PDF 재검증과 링크 수정
+
+- 사용자 재검증 요청. `pypdf`로 PDF 주석을 확인하니 첫 판본의 링크 10개가 모두 작업용 `out/report-preview/` 경로를 가리켰다. 실제 제출 PDF에서 열리지 않는 링크이므로 생성 스크립트가 PDF에는 근거 파일명을 텍스트로 인쇄하도록 수정했다. Markdown 원본의 상대 링크 10개는 유지하고 파일 존재를 전부 확인했다.
+- `python docs/render_development_report.py` 재실행 후 PDF **6쪽**, 텍스트 추출 가능, 대체 문자 **0개**, PDF 주석/데드 파일 링크 **0개**. 1·3·4·5·6쪽을 다시 렌더링해 한글·표·쪽나눔을 눈으로 확인했다. Windows PowerShell/JDK 17.0.20.1에서 `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test`를 재실행해 `PASS: 170 checks (scheduling + songs + persistence)` / `PASS: 198 Swing checks`, 종료 코드 0을 얻었다. 이번에는 GUI 렌더 자동 검사를 별도 재실행하지 않았다.
+- 보고서의 1~6절·요구사항 10개·코드 상수(계획 5개, 멤버 상한 64, 곡 2/3 계산)를 대조했다. 첫 자동 문서 점검은 검사 스크립트의 정규식 이스케이프 실수로 6절을 0개로 잘못 셌고, 정규식을 바로잡아 6/6 통과했다. 제품 결함으로 기록하지 않는다. `git diff --check`는 공백 오류 없이 종료 코드 0. PDF 생성·자동 검사가 학생 본인의 실제 Demo 시연이나 동료 검토를 대신하지는 않는다.
+
+## V-20261119-03: H49 개발 문서·PDF 점검
+
+- Windows PowerShell, Temurin `java`/`javac` 17.0.20.1. `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test`: `PASS: 170 checks (scheduling + songs + persistence)` / `PASS: 198 Swing checks`, 합계 368개, 종료 코드 0. `java -Dfile.encoding=UTF-8 -cp out GuiSmokeTest --render`: `PASS: 198 Swing checks`, 종료 코드 0. 렌더 실행 수는 합계에 더하지 않았다. 사용자 `data/`는 변경하지 않았다.
+- `python docs/render_development_report.py`로 Markdown 원본을 HTML로 변환하고 로컬 Edge headless 출력으로 `docs/BandDecision_Development_Report.pdf`를 생성했다. `pypdf`로 **6쪽·텍스트 추출 가능**을 확인했고 `pypdfium2`로 6쪽 전체를 PNG로 렌더링해 한글·표·쪽나눔을 눈으로 확인했다. Edge 첫 실행은 상대 프로필 경로의 잠금 오류로 PDF가 없었고, 작업 공간의 절대 프로필 경로로 재실행해 생성했다. PDF 원본은 `docs/DEVELOPMENT_REPORT.md`다.
+- 12주차 자료 9쪽의 6항목에 대해 보고서 1~6절과 마지막 대응표를 대조했다. 코드에서 `BandDecision`·`Song`·`DateRecommender`·`DataStore`·`DemoData`의 기준과 보고서 수치·정책을 대조했다. 이는 문서의 내용과 자동 검사 근거 확인이며 동료 직접 평가·학생 직접 시연·발표자료·실제 이메일 제출의 완료 증거는 아니다.
+- 최종 원본의 `## 1`~`## 6` 절 **6/6**, Markdown 상대 링크 **10개 모두 존재**, PDF **6쪽·추출 문자 9002자·U+FFFD 대체 문자 0개**, `368`과 `Demo` 텍스트 존재를 확인했다. `git diff --check`는 공백 오류 없이 종료 코드 0이었다. 이 자동 점검은 내용의 채점 결과나 사람의 사용성 평가를 대신하지 않는다.
+
+## V-20261119-02: H47 12주차 PDF·개발 문서 대조
+
+- `python -c "import pypdf ..."`로 `2026-2 Java 12주차.pdf`를 열어 **11쪽**의 텍스트를 추출했다(종료 코드 0). `pypdfium2`로 9~11쪽을 이미지로 렌더링해 눈으로 확인했다. 3쪽의 제출 기한·형식, 6~7쪽의 동료 검토, 9쪽의 문서 평가 6항목, 10~11쪽의 발표 평가·준비를 대조했다.
+- 현재 문서 검색에서 11주차 근거와 사용자 제공 평가 6항목은 있었지만 12주차 PDF 자체의 대조 기록은 없었다. `DEVELOPMENT.md`의 현재 구현 표에 콘솔·6명 고정 설명, `docs/EVALUATION.md`에 N명 범위 밖 표기, `docs/SUBMISSION.md`에 이전 검사 수가 남아 있어 수정했다.
+- 문서만 수정했다. H46/V-20261119-01의 368개 자동 검사를 이번 작업에서 재실행한 것으로 표기하지 않는다. 동료 검토·학생 직접 시연·발표자료 PDF·제출 메일도 실행하거나 작성하지 않았다.
+
+## V-20261119-01: H46 적용 안내·저장·달력 글자색
+
+- Windows PowerShell, JDK 17, 별도 임시 데이터에서 `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test`: `PASS: 170 checks (scheduling + songs + persistence)` / `PASS: 198 Swing checks`, 총 368개, 종료 코드 0. Swing 검사는 기간 5일 선택 후 대상 멤버와 적용 일수가 표시되고 직접 편집 날짜를 별도로 알려주는지 확인한다. 저장 재시도 버튼의 저장 동작과 전체 기간 응답 표시도 기존·수정 검사로 확인했다.
+- `java -Dfile.encoding=UTF-8 -cp out GuiSmokeTest --render`: `PASS: 198 Swing checks`, 종료 코드 0. [일정 화면](evidence/2026-11-19/schedule-clear-actions.png)에서 안내의 버튼 위 배치와 요일·날짜·상태의 검정 글씨, [밴드 설정 화면](evidence/2026-11-19/settings-save-retry.png)에서 전체 기간 응답·저장 재시도 설명을 눈으로 확인했다. 렌더 검사는 위 368개에 중복 합산하지 않는다.
+- 첫 빌드는 `DesktopUI`의 닫는 괄호 오타로 컴파일 오류가 났고 수정 후 위 두 명령을 다시 실행해 통과했다. 사용자 `data/` 파일은 변경하지 않았다. 실제 네이티브 마우스 전체 흐름은 미실행이다.
+
+## V-20261118-10: H45 사이드바 멤버 선택기
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test`: `PASS: 170 checks (scheduling + songs + persistence)` / `PASS: 197 Swing checks`, 총 367개, 종료 코드 0. Swing 검사는 선택기가 `WorkspaceView` 내부에 있고 브랜드 아래·일정 버튼 위에 있으며 일정·투표가 같은 선택기를 사용하는지 확인한다. 90/100/140% 배율과 1080×800/1280×930 크기의 기존 접근성 회귀도 통과했다.
+- `java -Dfile.encoding=UTF-8 -cp out GuiSmokeTest --render`: `PASS: 197 Swing checks`, 종료 코드 0. [사이드바 렌더링](evidence/2026-11-18/member-selector-in-sidebar.png)에서 BAND DECISION → 입력할 멤버 → 일정 순서를 확인했다. 렌더 검사는 위 367개에 중복 합산하지 않는다.
+- 사용자 `data/` 파일은 변경하지 않았다. 실제 Windows 창 마우스 조작은 V-20261118-09의 연결 오류로 이번에는 재시도하지 않았다.
+
+## V-20261118-09: H44 요청 항목 재점검
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test`: `PASS: 170 checks (scheduling + songs + persistence)` / `PASS: 197 Swing checks`, 총 367개, 종료 코드 0.
+- `java -Dfile.encoding=UTF-8 -cp out GuiSmokeTest --render`: Swing 197개 통과, 종료 코드 0. [달력 렌더링](evidence/2026-11-18/schedule-black-date-numbers.png)에서 지난 날짜와 현재 날짜의 숫자 모두 검정이며 지난 날짜 배경은 비활성 상태로 구분되는 것을 확인했다. 렌더 검사는 위 합계에 중복하지 않는다.
+- 멤버 추가·장소 입력의 실제 Windows 창 조작을 시도했지만 `Computer Use native pipe is unavailable: failed to connect native pipe`가 재시도·커널 재시작 후에도 반복됐다. 다른 UI 연결 도구도 같은 오류였다. 테스트 전용 `out/cua-audit` 데이터 경로로 띄운 프로세스는 종료했다. 실제 대화상자 마우스 조작은 미검증이며 사용자 `data/`는 변경하지 않았다.
+
+## V-20261118-08: H43 합주 장소
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test`: 도메인 170개·Swing 197개, 합계 367개 통과, 종료 코드 0. 장소 공백 정리·상세 표시, 최종 확인 뒤 장소 변경 거부, 저장·복원, 계획 장소 수정, 목록 표시와 수정 입력란 자동 채우기를 확인했다. 멤버 수·장소 속성이 없는 이전 v3 파일도 6명·장소 미정으로 복원했다.
+- `java -Dfile.encoding=UTF-8 -cp out GuiSmokeTest --render`: Swing 197개 통과, 종료 코드 0. [계획 작성 장소 입력](evidence/2026-11-18/plan-location-field.png)과 [확정 목록의 장소·분류](evidence/2026-11-18/plan-history-location.png)를 렌더링으로 확인했다. 이 197개는 위 합계에 중복 합산하지 않는다.
+- 기존 장소 없는 계획은 ‘미정’으로 표시한다. 저장 파일이 없는 임시 폴더의 검사 데이터를 사용했고 사용자 `data/`는 수정하지 않았다. 장소 입력·확정 대화상자의 실제 마우스 조작은 미실행이다.
+
+## V-20261118-07: H42 멤버·화면 개선
+
+- 첫 `build.ps1 -Test`에서 도메인 162개 통과 후 GUI에서 선택기 갱신 중 `멤버 번호가 잘못되었습니다` 예외로 종료 코드 1. 원인은 항목을 지울 때 선택 인덱스가 일시적으로 -1이 된 상태에서 달력 갱신이 실행된 것이다. 멤버 배열을 먼저 교체하고 -1 선택 이벤트를 무시하도록 수정했다.
+- 재실행에서 7명 기본 난이도·미응답, 일정/투표 추천 재개, 같은 파트·이름·실력 수정과 잘못된 파트 변경의 원자성, v3 저장·복원, 7명 확정 계획, 7명 찬성 2/3 기준, GUI 표·선택기 동기화와 예정/이전 계획 필터가 통과했다. 최종 전체 명령 결과는 V-20261118-08의 170+197=367개, 종료 코드 0이다.
+- [달력 선택기·아이콘 범례](evidence/2026-11-18/schedule-member-legend.png)와 [곡별 투표 요약](evidence/2026-11-18/song-vote-summary.png)을 렌더링으로 확인했다. 날짜 숫자 검정과 집계의 줄임표 없는 표시를 확인했다.
+- 자동 검사는 멤버 추가·수정 대화상자의 실제 마우스 입력을 대신하지 않는다. 로컬 다중 사용자 동시 사용도 검사하지 않았다.
+
+## V-20261118-06: H41 화면의 곡 ID 숨김
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test`: `PASS: 157 checks (scheduling + songs + persistence)` / `PASS: 188 Swing checks`, 총 345개, 종료 코드 0. 후보곡 표 2열·추천곡 표 6열을 확인하고, 삭제 후 선택 곡의 투표 연결과 계획 수정 시 추천곡 선택도 기존 회귀 검사로 통과했다. 확정 계획 설명에 내부 곡 ID가 나타나지 않는지 추가 확인했다.
+- `java -Dfile.encoding=UTF-8 -cp out GuiSmokeTest --render`: `PASS: 188 Swing checks`, 종료 코드 0. [후보곡 화면](evidence/2026-11-18/song-list-without-id.png)과 [계획 작성 화면](evidence/2026-11-18/recommendations-without-song-id.png)에서 ID 열이 사라지고 제목·아티스트가 표시되는 것을 확인했다. 렌더 검사는 위 합계에 중복 합산하지 않는다.
+- 전체 투표 결과 대화상자와 삭제 확인창의 실제 마우스 조작은 미실행이다. 사용자 `data/` 파일은 변경하지 않았다.
+
+## V-20261118-05: H40 확정 합주 색상 구분
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test`: `PASS: 157 checks (scheduling + songs + persistence)` / `PASS: 186 Swing checks`, 총 343개, 종료 코드 0. Swing 검사에서 확정 날짜 두 개가 개인 응답·전원 가능 상태와 관계없이 연보라 배경인지, 계획 삭제 후 색상이 사라지는지 확인했다.
+- `java -Dfile.encoding=UTF-8 -cp out GuiSmokeTest --render`: `PASS: 186 Swing checks`, 종료 코드 0. [달력 렌더링](evidence/2026-11-18/confirmed-calendar-purple.png)에서 확정 날짜 11/22가 보라색이고 일반 가능 날짜는 파란색으로 구분되는 것을 확인했다. 렌더 검사 186개는 위 합계에 중복 합산하지 않는다.
+- 실제 마우스 조작을 통한 전체 시연은 미실행이다. 사용자 `data/` 파일은 변경하지 않았다.
+
 ## V-20261118-04: H39 확정 계획 달력 표시
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test`: 첫 회 도메인 157개 통과 후 GUI 검사 `확정 계획 날짜의 달력 표시·상세·툴팁`에서 AssertionError, 종료 코드 1. 테스트는 선택 날짜의 계획 #3을 #1로 기대한 오류였다. 제품 로직 변경 없이 기대 ID를 바로잡았다.
