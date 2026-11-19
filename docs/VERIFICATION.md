@@ -1,5 +1,37 @@
 # 검증 기록
 
+## V-20261119-11: H55 제출 복사본 점검
+
+- `out/submission-check-<고유값>`에 src·test·실행 스크립트·문서만 복사하고 해당 복사본의 `build.ps1 -Test`를 실행했다. 기능 181개·Swing 200개, 종료 코드 0. 같은 복사본의 클래스에 `GuiSmokeTest --render` 실행도 200개 통과·종료 코드 0. 사용자 data는 사용하지 않았다.
+- 일정·곡·계획·설정·계획 작성 렌더 5개를 확인했다. 이는 네이티브 확인창의 실제 마우스 시연이나 다른 PC 검증은 아니다.
+- README·보고서·가이드 대조·제출 안내의 상대 링크 24개 존재, PDF 4쪽·대체 문자 0개, DOCX ZIP 오류 없음. Git 로컬 미커밋 변경을 확인했으므로 현재 원격 주소가 최신 작업을 포함한다고 표기하지 않는다.
+
+## V-20261119-10: H54 가이드 재점검
+
+- Windows PowerShell에서 `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test` 재실행. 실제 출력 `PASS: 181 checks (scheduling + songs + persistence)`, `PASS: 200 Swing checks`, 종료 코드 0. Java 코드는 수정하지 않았다.
+- 12주차 7·9~11쪽과 실제 추천·응답 코드, AcceptanceTest와 GuiSmokeTest 메서드를 대조했다. `completionAndUndo()`는 GuiSmokeTest에 존재한다. 검사 도구의 중간 판단 오류(메서드 부재 추정)는 폐기하고 최종 문서에 실제 파일 위치를 명시했다.
+- PDF·DOCX 생성 종료 코드 0. 최종 PDF 4쪽 전체 PNG를 열어 한글·표·쪽나눔을 확인했다. DOCX는 LibreOffice 부재로 전 페이지 시각 검증이 미완료다. PDF 검증을 DOCX 전체 시각 검증으로 계산하지 않는다. 항목별 대조는 GUIDELINE_REVIEW.md.
+
+## V-20261119-09: 확장 계획과 강의 가이드 대조
+
+- `pypdf`로 12주차 10~11쪽의 현재 범위·생략 이유·확장 계획 요구를 확인하고 `pypdfium2` 렌더 이미지로 재확인했다. 확장 계획은 발표 평가 15% 항목이다.
+- PDF·DOCX 생성 스크립트 종료 코드 0. 최종 PDF 4쪽 전체를 PNG로 렌더해 한글·표·쪽나눔을 확인했다. DOCX의 페이지 렌더는 이전 V-20261119-08의 LibreOffice 부재 한계가 지속된다. Java 검사는 문서 수정이라 재실행하지 않았다.
+
+## V-20261119-08: 제출용 개발 문서 간소화·DOCX
+
+- 환경: Windows PowerShell, 로컬 Microsoft Word, Python 및 문서 런타임. `python docs/render_development_report.py`로 PDF를 다시 생성하고, 문서 런타임 Python으로 `docs/render_development_docx.py`를 실행해 편집용 DOCX를 생성했다. 두 생성 명령은 종료 코드 0이었다.
+- 결과: `pypdf`로 PDF **3쪽**, U+FFFD 대체 문자 **0개**, `381` 텍스트 포함을 확인했다(종료 코드 0). `pypdfium2`로 3쪽 전체를 PNG로 렌더해 표·한글·쪽나눔을 눈으로 확인했다. Word에서 DOCX 열기를 확인했고, `python-docx` 구조 검사에서 ZIP 오류 없음, 제목 절 **6개**, 편집 가능한 표 **5개**, R01~R10과 `381` 포함을 확인했다(종료 코드 0). `git diff --check` 종료 코드 0.
+- 한계: 문서 런타임에 LibreOffice가 없어 자동 DOCX 페이지 렌더는 실패했다. Word의 모든 쪽을 개별로 살펴본 결과로 기록하지 않는다. 이번에는 Java 기능 검사를 재실행하지 않았으며 기능 181개·Swing 200개는 V-20261119-07의 이전 결과다.
+
+## V-20261119-07: H51 1~5명 밴드
+
+- 환경: Windows PowerShell, JDK 17, 프로젝트 폴더. `powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Test`의 첫 실행에서는 기능 `PASS: 179 checks (scheduling + songs + persistence)` 뒤 Swing 검사 중 `ArrayIndexOutOfBoundsException: Index 6 out of bounds for length 6`로 종료 코드 1이었다. 멤버 선택기를 새 인원으로 채우는 과정에서 달력에 이전 6명 배열이 남아 있었던 원인이다.
+- 수정: `ScheduleCalendarPanel.setMembers`는 새 배열과 되돌리기 초기화만 하고 즉시 렌더하지 않도록 했다. `DesktopUI.syncMembers`가 달력의 멤버 배열을 먼저 교체하고 공통 선택기를 다시 채운 뒤 마지막에 전체 갱신한다.
+- 재시험: 같은 명령으로 기능 `PASS: 179 checks (scheduling + songs + persistence)`, `PASS: 200 Swing checks`, 종료 코드 0. 이후 1명 합주 계획 미리보기·곡 추천 조건을 추가해 180+200개를 통과했다. 남은 멤버의 불가·반대 사유 보존 조건까지 추가한 최종 재실행은 `PASS: 181 checks (scheduling + songs + persistence)`와 `PASS: 200 Swing checks`, 종료 코드 0이었다. `java '-Dfile.encoding=UTF-8' -cp out GuiSmokeTest --render`는 `PASS: 200 Swing checks`, 종료 코드 0이었다. 렌더 중의 Swing 200개는 최종 합계 381개에 중복 계산하지 않는다.
+- 조건별 기대/실제: 중간·첫 멤버 삭제 시 남은 멤버의 날짜 응답·불가 사유와 곡 난이도·찬반이 같은 인덱스로 이동, 5명·1명 추천 계산, 마지막 1명 삭제 거부, 확정 스냅샷 보존, 1명·2명 v3 파일 복원, 삭제 뒤 같은 파트 재추가의 미응답/기본 난이도 3이 모두 단언을 통과했다. Swing에서는 1명일 때 사이드바·일정·투표 행과 선택기 동기화가 통과했다. [설정 렌더](evidence/2026-11-19/member-delete-settings.png)에서 삭제 버튼과 설명이 보이는 것을 눈으로 확인했다.
+- 한계: 자동 Swing 이벤트·컴포넌트 렌더 확인이다. 실제 네이티브 삭제 확인창의 승인/취소 마우스 시연, 다른 PC와 DPI는 미실행이다. 사용자 `data/` 파일은 수정하지 않았다.
+- 개발 문서 동기화: `python docs/render_development_report.py`로 제출용 PDF를 다시 만들었다(종료 코드 0). 최종 판본의 `pypdf` 점검 결과 6쪽, U+FFFD 대체 문자 0개, 주석 링크 0개, `381`·`1~64` 텍스트 포함. `pypdfium2`로 전체 6쪽을 PNG 렌더하고 1~6쪽의 표·본문·쪽나눔을 확인했다. Python 상대 링크 검사에서 README 13개·제출용 Markdown 10개 모두 존재, 종료 코드 0. `git diff --check`도 종료 코드 0이었다.
+
 ## V-20261119-06: README 안내 대조
 
 - Windows PowerShell에서 `run.ps1`, `run-gui.ps1`, `build.ps1`, `Main.java`, `DemoData.java`와 화면 버튼 이름을 README의 실행·Demo·사용 안내와 대조했다. Demo는 저장 파일이 없을 때만 실행일 기준으로 생성되는 것을 확인하고, 고정 날짜 설명을 제거했다.

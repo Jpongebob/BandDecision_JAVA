@@ -25,7 +25,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\run-gui.ps1 -Demo
 | 실행 | 용도 | 저장 파일 |
 | --- | --- | --- |
 | `.\run-gui.ps1 -Demo` | 발표·체험용 가상 데이터 | `data/demo.properties` |
-| `.\run-gui.ps1` | 빈 밴드에서 직접 입력 | `data/banddecision.properties` |
+| `.\run-gui.ps1` | 기본 멤버 6명에서 일정·곡을 직접 입력 | `data/banddecision.properties` |
 | `.\build.ps1 -Test` | 컴파일과 자동 검사 | 사용자 데이터 사용 안 함 |
 
 `.\run.ps1`과 `.\run.ps1 -Demo`도 각각 같은 GUI를 엽니다. 콘솔 메뉴는 없습니다. IntelliJ에서 실행할 때는 JDK 17 이상으로 `Main`을 실행하고, Demo에는 프로그램 인수 `--demo`를 지정합니다.
@@ -62,7 +62,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\run-gui.ps1 -Demo
 
 ### 4. 밴드 설정
 
-멤버 이름·파트·실력을 수정하거나 멤버를 추가합니다(최대 64명). 추가 멤버는 기존 날짜·곡에서 미응답으로 시작하고, 기존 곡 난이도는 기본 3입니다. 변경은 자동 저장됩니다. 저장 실패 안내가 나오면 **저장 다시 시도**를 사용합니다. 멤버 삭제·순서 변경과 수동 백업·복원 메뉴는 없습니다.
+멤버 이름·파트·실력을 수정하거나 멤버를 추가·삭제합니다(**1~64명**). 처음에는 6명이지만 불필요한 기본 멤버를 삭제해 1~5명 밴드로 운영할 수 있습니다. 같은 파트도 여러 명이 맡을 수 있습니다. 추가 멤버는 기존 날짜·곡에서 미응답으로 시작하고, 기존 곡 난이도는 기본 3입니다. 삭제 전 확인창을 보여주며 해당 멤버의 날짜 응답·곡 난이도·투표가 함께 삭제됩니다. 이미 확정된 계획의 당시 참석·불참 기록은 보존합니다. 마지막 1명은 삭제할 수 없습니다. 변경은 자동 저장되고 실패하면 **저장 다시 시도**를 누릅니다. 순서 변경과 수동 백업·복원 메뉴는 없습니다.
 
 ## 추천 기준
 
@@ -77,11 +77,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\run-gui.ps1 -Demo
 .\build.ps1 -Test
 ```
 
-2026-11-19에 개발 지원 도구가 실제 실행한 자동 검사는 **기능 170개 + Swing 198개**, 종료 코드 0이었습니다. 네이티브 창의 전체 마우스 시연과 다른 PC에서의 실행은 별도로 확인해야 합니다. 상세 조건·결과는 [검증 기록](docs/VERIFICATION.md)에 있습니다.
+2026-11-19에 개발 지원 도구가 실제 실행한 자동 검사는 **기능 181개 + Swing 200개**, 종료 코드 0이었습니다. 별도 화면 렌더 검사도 Swing 200개를 통과했습니다. 네이티브 창의 전체 마우스 시연과 다른 PC에서의 실행은 별도로 확인해야 합니다. 상세 조건·결과는 [검증 기록](docs/VERIFICATION.md)에 있습니다.
 
 ## 개발 문서
 
-- [제출용 개발 문서](docs/DEVELOPMENT_REPORT.md) · [PDF](docs/BandDecision_Development_Report.pdf): 문제, 요구사항·완료 기준, 설계, 변경 이유, 테스트 개선, 실행 안내
+- [제출용 개발 문서](docs/DEVELOPMENT_REPORT.md) · [편집용 Word](docs/BandDecision_Development_Report.docx) · [PDF](docs/BandDecision_Development_Report.pdf): 문제, 요구사항·완료 기준, 설계, 변경 이유, 테스트 개선, 실행 안내
 - [개발 기록](DEVELOPMENT.md) · [현재 구현](IMPLEMENTATION.md) · [평가 기준 대응](docs/EVALUATION.md)
 - [사용 예시](docs/USAGE.md) · [제출 점검](docs/SUBMISSION.md) · [변경 이력](docs/CHANGELOG.md) · [설계 결정](docs/DECISIONS.md) · [남은 문제](docs/ISSUES.md)
 

@@ -24,6 +24,16 @@ public final class BandDecision {
         members = Arrays.copyOf(members, members.length + 1);
         members[members.length - 1] = added;
     }
+    public void removeMember(int index) {
+        if (members.length <= 1) throw new IllegalArgumentException("멤버는 최소 1명이 필요합니다.");
+        if (index < 0 || index >= members.length) throw new IllegalArgumentException("멤버 번호가 잘못되었습니다.");
+        attendance.removeMember(index);
+        songs.removeMember(index);
+        Member[] remaining = new Member[members.length - 1];
+        System.arraycopy(members, 0, remaining, 0, index);
+        System.arraycopy(members, index + 1, remaining, index, remaining.length - index);
+        members = remaining;
+    }
     public AttendanceService getAttendance() { return attendance; }
     public SongService getSongs() { return songs; }
     public ConfirmedPlan[] getConfirmedPlans() { return confirmedPlans.clone(); }

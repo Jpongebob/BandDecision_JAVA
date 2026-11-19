@@ -349,7 +349,6 @@ public final class ScheduleCalendarPanel extends JPanel {
     public void setMembers(Member[] members) {
         this.members = members;
         undoState = null;
-        refresh();
     }
     private String planSummary(LocalDate date) {
         StringBuilder result = new StringBuilder();

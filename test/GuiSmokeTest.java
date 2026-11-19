@@ -342,8 +342,9 @@ public final class GuiSmokeTest {
         try {
             WorkspaceView workspace = find(frame, WorkspaceView.class, null);
             check(find(workspace.page(WorkspaceView.Page.SETTINGS), JButton.class, "멤버 추가") != null
-                && find(workspace.page(WorkspaceView.Page.SETTINGS), JButton.class, "선택 멤버 수정") != null,
-                "멤버 추가·수정 화면 제공");
+                && find(workspace.page(WorkspaceView.Page.SETTINGS), JButton.class, "선택 멤버 수정") != null
+                && find(workspace.page(WorkspaceView.Page.SETTINGS), JButton.class, "선택 멤버 삭제") != null,
+                "멤버 추가·수정·삭제 화면 제공");
             frame.addMember("민수", "기타", 2);
             ScheduleCalendarPanel calendar = find(frame, ScheduleCalendarPanel.class, null);
             JTable responses = find(calendar, JTable.class, "파트");
@@ -361,6 +362,16 @@ public final class GuiSmokeTest {
                 check(app.getMembers()[6].displayName().equals("민수 · 보조 기타")
                     && app.getMembers()[6].getSkill() == 4, "멤버 수정 검증 실패 시 원래 정보 보존");
             }
+            findMemberCombo(frame).setSelectedIndex(4);
+            frame.deleteMember(2);
+            check(app.getMembers().length == 6 && responses.getRowCount() == 6 && votes.getRowCount() == 6
+                && findMemberCombo(frame).getSelectedIndex() == 3
+                && findMemberCombo(frame).getItemAt(3).equals("드럼"),
+                "가운데 멤버 삭제 후 기존 선택 멤버와 일정·투표 행 유지");
+            while (app.getMembers().length > 1) frame.deleteMember(app.getMembers().length - 1);
+            check(responses.getRowCount() == 1 && votes.getRowCount() == 1
+                && findMemberCombo(frame).getItemCount() == 1 && findMemberCombo(frame).getSelectedIndex() == 0,
+                "1명 밴드에서도 사이드바·일정·투표 화면 동기화");
             app.restorePlan(1, new RehearsalPlan(LocalDate.now().minusDays(1),
                 new String[] {"보컬"}, new String[] {"기타 | 일정"}, new String[] {"검사곡 — 밴드"}));
             app.restorePlan(2, new RehearsalPlan(LocalDate.now().plusDays(1),

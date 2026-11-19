@@ -33,6 +33,21 @@ public final class Song {
         votes = java.util.Arrays.copyOf(votes, votes.length + 1);
         reasons = java.util.Arrays.copyOf(reasons, reasons.length + 1);
     }
+    void removeMember(int member) {
+        check(member);
+        int[] nextDifficulties = new int[difficulties.length - 1];
+        int[] nextVotes = new int[votes.length - 1];
+        String[] nextReasons = new String[reasons.length - 1];
+        System.arraycopy(difficulties, 0, nextDifficulties, 0, member);
+        System.arraycopy(difficulties, member + 1, nextDifficulties, member, nextDifficulties.length - member);
+        System.arraycopy(votes, 0, nextVotes, 0, member);
+        System.arraycopy(votes, member + 1, nextVotes, member, nextVotes.length - member);
+        System.arraycopy(reasons, 0, nextReasons, 0, member);
+        System.arraycopy(reasons, member + 1, nextReasons, member, nextReasons.length - member);
+        difficulties = nextDifficulties;
+        votes = nextVotes;
+        reasons = nextReasons;
+    }
     public int getId() { return id; }
     public String getTitle() { return title; }
     public String getArtist() { return artist; }

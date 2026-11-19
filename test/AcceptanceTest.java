@@ -397,6 +397,62 @@ public final class AcceptanceTest {
                 "7명 파트·투표·일정 저장 후 복원");
         } finally { Files.deleteIfExists(directory.resolve("members.properties")); Files.delete(directory); }
     }
+    private static void smallBands() throws Exception {
+        BandDecision app = new BandDecision();
+        LocalDate day = LocalDate.now().plusDays(1);
+        Song song = app.getSongs().register("소규모 합주", "밴드", new int[] {1, 2, 3, 4, 5, 1});
+        for (int i = 0; i < 6; i++) {
+            app.getAttendance().respond(i, day, i == 2 ? AttendanceService.UNAVAILABLE : AttendanceService.AVAILABLE, "수업");
+            song.vote(i, i == 2 || i == 4 ? Song.NO : Song.YES, i == 2 ? "어려움" : i == 4 ? "장비" : "");
+        }
+        app.getAttendance().respond(3, day.plusDays(1), AttendanceService.UNAVAILABLE, "아르바이트");
+        RehearsalPlan approved = app.preview(day, new int[] {song.getId()}, LocalDate.now());
+        app.confirm(day, new int[] {song.getId()}, LocalDate.now(), approved, true);
+        app.removeMember(2);
+        check(app.getMembers().length == 5 && app.getAttendance().getMemberCount() == 5
+            && app.getMembers()[2].getPart().equals("베이스") && song.getDifficulty(2) == 4
+            && song.getVote(2) == Song.YES && app.getAttendance().response(2, day) == AttendanceService.AVAILABLE,
+            "가운데 멤버 삭제 후 일정·난이도·투표가 같은 사람에게 연결됨");
+        check(app.getAttendance().reason(2, day.plusDays(1)).equals("아르바이트")
+            && song.getVote(3) == Song.NO && song.getReason(3).equals("장비"),
+            "삭제 뒤 남은 멤버의 불가 사유·반대 사유 보존");
+        check(app.findPlan(1).plan().getAttendees().length == 5
+            && app.findPlan(1).plan().getAbsentees().length == 1
+            && DateRecommender.recommend(app.getAttendance(), LocalDate.now())[0].getAttendance() == 5,
+            "기존 확정 기록은 보존하고 날짜 추천은 현재 5명으로 재계산");
+        app.removeMember(0);
+        check(app.getMembers()[0].getPart().equals("여성 보컬") && song.getDifficulty(0) == 2,
+            "첫 멤버 삭제 후 순서 재정렬");
+        while (app.getMembers().length > 1) app.removeMember(app.getMembers().length - 1);
+        check(app.getMembers().length == 1 && song.eligible()
+            && DateRecommender.recommend(app.getAttendance(), LocalDate.now())[0].getAttendance() == 1,
+            "1명 밴드의 곡·날짜 추천");
+        check(SongRecommender.recommend(app.getSongs(), app.getMembers()).length == 1
+            && app.preview(day, new int[] {song.getId()}, LocalDate.now()).getAttendees().length == 1,
+            "1명 밴드의 곡 추천과 합주 계획 미리보기");
+        rejects(() -> app.removeMember(0), "마지막 멤버 삭제 거부");
+        rejects(() -> app.removeMember(1), "범위 밖 멤버 삭제 거부");
+        Path directory = Files.createTempDirectory("banddecision-small-band-");
+        try {
+            DataStore store = new DataStore(directory.resolve("small.properties"));
+            store.save(app);
+            BandDecision restored = store.load();
+            check(restored.getMembers().length == 1 && restored.getMembers()[0].getPart().equals("여성 보컬")
+                && restored.getAttendance().response(0, day) == AttendanceService.AVAILABLE
+                && restored.getSongs().find(song.getId()).getDifficulty(0) == 2
+                && restored.findPlan(1).plan().getAbsentees().length == 1,
+                "1명 밴드 저장·복원과 과거 계획 보존");
+            restored.addMember("새 멤버", "여성 보컬", 2);
+            Song restoredSong = restored.getSongs().find(song.getId());
+            check(restored.getMembers().length == 2 && restoredSong.getDifficulty(1) == 3
+                && restoredSong.getVote(1) == Song.UNANSWERED
+                && restored.getAttendance().response(1, day) == AttendanceService.UNANSWERED
+                && !restoredSong.eligible(), "1명에서 같은 파트 2명으로 늘리면 새 멤버는 미응답");
+            store.save(restored);
+            check(store.load().getMembers().length == 2 && store.load().getSongs().find(song.getId()).getDifficulty(1) == 3,
+                "2명 밴드 저장·복원");
+        } finally { Files.deleteIfExists(directory.resolve("small.properties")); Files.delete(directory); }
+    }
     private static void planLocation() throws Exception {
         BandDecision app = new BandDecision();
         LocalDate day = LocalDate.now().plusDays(1);
@@ -452,7 +508,7 @@ public final class AcceptanceTest {
                 "발표 샘플 추천 자격 곡 4개: " + today);
         }
         songs(); attendance(); plans(); persistence();
-        songManagement(); planManagement(); dynamicMembers(); planLocation();
+        songManagement(); planManagement(); dynamicMembers(); smallBands(); planLocation();
         System.out.println("PASS: " + checks + " checks (scheduling + songs + persistence)");
     }
 }

@@ -19,6 +19,21 @@ public final class AttendanceService {
             reasons[i] = Arrays.copyOf(reasons[i], memberCount);
         }
     }
+    void removeMember(int member) {
+        check(member);
+        if (memberCount <= 1) throw new IllegalArgumentException("멤버는 최소 1명이 필요합니다.");
+        for (int i = 0; i < dates.length; i++) {
+            int[] nextAnswers = new int[memberCount - 1];
+            String[] nextReasons = new String[memberCount - 1];
+            System.arraycopy(answers[i], 0, nextAnswers, 0, member);
+            System.arraycopy(answers[i], member + 1, nextAnswers, member, nextAnswers.length - member);
+            System.arraycopy(reasons[i], 0, nextReasons, 0, member);
+            System.arraycopy(reasons[i], member + 1, nextReasons, member, nextReasons.length - member);
+            answers[i] = nextAnswers;
+            reasons[i] = nextReasons;
+        }
+        memberCount--;
+    }
     private int index(LocalDate date) {
         for (int i = 0; i < dates.length; i++) if (dates[i].equals(date)) return i;
         throw new IllegalArgumentException("응답 기록이 없는 날짜입니다.");

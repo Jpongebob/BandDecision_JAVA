@@ -266,14 +266,21 @@ public final class DesktopUI extends JFrame {
     private void changed() { refresh(); save(); }
 
     private JPanel membersPanel() {
-        JPanel panel = page("멤버와 현재 실력", "멤버를 추가하거나 이름·파트와 실력을 수정하세요. 같은 파트를 여러 명이 맡아도 됩니다. 응답 상태는 오늘부터 다음 달 말일까지의 전체 날짜 기준입니다.");
+        JPanel panel = page("멤버와 현재 실력", "멤버는 1~64명으로 관리합니다. 같은 파트를 여러 명이 맡아도 됩니다. 응답 상태는 오늘부터 다음 달 말일까지의 전체 날짜 기준입니다.");
         panel.add(UiTheme.scroll(memberTable), BorderLayout.CENTER);
         JSpinner skill = rating();
         memberTable.getSelectionModel().addListSelectionListener(e -> {
             int index = memberTable.getSelectedRow();
             if (!refreshing && index >= 0) skill.setValue(members[index].getSkill());
         });
-        panel.add(stack(row(button("멤버 추가", () -> memberForm(null)), button("선택 멤버 수정", () -> memberForm(members[selectedRow(memberTable, "수정할 멤버를 선택하세요.")]))),
+        panel.add(stack(row(button("멤버 추가", () -> memberForm(null)),
+            button("선택 멤버 수정", () -> memberForm(members[selectedRow(memberTable, "수정할 멤버를 선택하세요.")])),
+            button("선택 멤버 삭제", () -> {
+                int index = selectedRow(memberTable, "삭제할 멤버를 선택하세요.");
+                if (members.length <= 1) throw new IllegalArgumentException("멤버는 최소 1명이 필요합니다.");
+                if (ask(members[index].displayName() + " 멤버를 삭제할까요?\n이 멤버의 날짜 응답·곡 난이도·투표도 삭제됩니다.\n이미 확정된 합주 계획 기록은 유지됩니다."))
+                    deleteMember(index);
+            })),
             row(new JLabel("새 실력 (1~5)"), skill, button("실력 저장", () -> {
             int index = selectedRow(memberTable, "실력을 수정할 파트를 선택하세요.");
             members[index].setSkill(ratingValue(skill)); changed();
@@ -309,6 +316,13 @@ public final class DesktopUI extends JFrame {
     void addMember(String name, String part, int skill) {
         app.addMember(name, part, skill);
         syncMembers(app.getMembers().length - 1); changed();
+    }
+    void deleteMember(int index) {
+        if (!scheduleCalendar.finishEditing()) return;
+        int selected = activeMember.getSelectedIndex();
+        app.removeMember(index);
+        syncMembers(selected > index ? selected - 1 : selected);
+        changed();
     }
     void editMember(Member member, String part, int skill) {
         editMember(member, member.getName(), part, skill);

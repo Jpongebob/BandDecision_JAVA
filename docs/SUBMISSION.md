@@ -1,15 +1,15 @@
 # Java 수업 제출 점검 안내
 
-2026-11-19 H49 문서 점검 기준. [12주차 강의자료](<../../../2026-2 Java 12주차.pdf>) 3·9~11쪽을 대조했다. 최신 자동 실행과 PDF 검토 결과는 [검증 기록](VERIFICATION.md)의 V-20261119-03에 있다. 이 문서는 제출 완료나 점수 보장이 아니다.
+2026-11-19 H54 문서 점검 기준. [12주차 강의자료](<../../../2026-2 Java 12주차.pdf>) 3·9~11쪽을 대조했다. 항목별 결과는 [가이드 대조](GUIDELINE_REVIEW.md), 자동 실행과 PDF 검토 결과는 [검증 기록](VERIFICATION.md)의 V-20261119-10에 있다. 이 문서는 제출 완료나 점수 보장이 아니다.
 
 강의자료는 **11월 23일 월요일까지 이메일 제출**, 개발 문서와 발표자료는 **PDF**, 소스 코드는 **ZIP 파일 또는 GitHub 저장소 주소**를 요구한다. 수신 주소는 원본 PDF 3쪽에서 제출 직전에 다시 확인한다. [개발 문서 PDF](BandDecision_Development_Report.pdf)는 생성·화면 검토했다. **발표자료 PDF와 이메일 전송은 아직 수행하지 않았다.**
 
-개발 문서를 수정하면 `BandDecision` 폴더에서 `python docs/render_development_report.py`를 실행해 PDF를 다시 만든다. 이 스크립트는 로컬 Microsoft Edge를 사용한다. 생성 후 PDF를 열어 표·한글·쪽나눔을 다시 확인한다.
+개발 문서를 수정하면 `BandDecision` 폴더에서 `python docs/render_development_report.py`를 실행해 제출용 PDF를 다시 만든다. 편집용 Word 파일은 `python docs/render_development_docx.py`로 다시 만든다. 원본은 `docs/DEVELOPMENT_REPORT.md`이며, 생성 후 표·한글·쪽나눔을 확인한다.
 
 ## 제출 구성
 
 - 필수 실행 자료: src/, test/, build.ps1, run.ps1, run-gui.ps1.
-- 설명 자료: README.md, DEVELOPMENT.md, IMPLEMENTATION.md, SPEC.md, docs/와 하위 evidence/. 제출용 개발 문서 원본은 docs/DEVELOPMENT_REPORT.md, PDF는 docs/BandDecision_Development_Report.pdf.
+- 설명 자료: README.md, DEVELOPMENT.md, IMPLEMENTATION.md, SPEC.md, docs/와 하위 evidence/. 제출용 개발 문서 원본은 docs/DEVELOPMENT_REPORT.md, 편집용 Word는 docs/BandDecision_Development_Report.docx, PDF는 docs/BandDecision_Development_Report.pdf.
 - AGENTS.md는 개발 기록 규칙이므로 함께 보관할 수 있다.
 - out/, tmp/, 개인 data/, IDE 설정은 제출용 실행에 필요하지 않다. 기존 개인 파일을 삭제하지 말고 제출 복사본에서 제외한다.
 - DEVELOPMENT.md의 강의자료 링크는 프로젝트 밖 원본 PDF를 참조한다. 배포 폴더에서 PDF를 제공하지 않으면 해당 참고 링크는 열리지 않지만 프로그램 실행에는 영향이 없다.
@@ -29,7 +29,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\run-gui.ps1 -Demo
 
 `.\run.ps1 -Demo`도 샘플 GUI이며 일반 GUI는 `.\run-gui.ps1`이다. 샘플도 재실행 시 저장 내용을 읽는다. 제출 시 개인 data를 제외하면 첫 샘플 실행에서 실행일 기준 예시를 생성한다. 빌드는 --release 17로 Java 17 대상 바이트코드를 만든다.
 
-H34 당시 새 임시 경로에서 377개 검사를 확인했다. H35에서 콘솔·수동 백업을 제거했으며 최신 H46은 170+198=368개 자동 검사와 Swing 렌더링을 통과했다. 이는 동일 PC에서의 검사이며 다른 PC 검증은 아니다.
+H34 당시 새 임시 경로에서 377개 검사를 확인했다. H35에서 콘솔·수동 백업을 제거했으며 최신 H51은 181+200=381개 자동 검사와 Swing 렌더링을 통과했다. 이는 동일 PC에서의 검사이며 다른 PC 검증은 아니다.
 
 2026-11-19 사용자 전달 안내: 구현 결과와 시연은 `-Demo`로 보여주면 된다. 별도 시연 기능이나 모든 데이터를 새로 입력하는 순서는 요구하지 않는다. PDF 10~11쪽의 발표 기준에 따라 Demo 화면에서 핵심 기능의 연결, 구조·설계 이유, 현재 범위와 확장 가능성을 설명할 준비는 남아 있다. 발표자료 PDF·실제 시간 측정과 제출은 아직 미완료다.
 
@@ -58,3 +58,5 @@ H34 당시 새 임시 경로에서 377개 검사를 확인했다. H35에서 콘�
 - [ ] 10분 설명·시연을 직접 연습하고 2분 질의/전환을 고려한 발표 순서 확인.
 
 기능 추가보다 이 설명·시연을 마무리하는 것이 현재 제출 준비의 우선순위다.
+
+H55 최종 점검: 개인 데이터와 컴파일 결과를 제외한 새 복사본에서도 기능 181개·Swing 200개가 통과했다. 로컬 미커밋 변경이 있으므로 현재 GitHub 주소만으로 최신 파일이 포함된다고 판단하면 안 된다. 소스 ZIP은 `out/submission/BandDecision-source.zip`에 준비하며, ZIP 준비와 이메일 전송 완료는 구분한다.

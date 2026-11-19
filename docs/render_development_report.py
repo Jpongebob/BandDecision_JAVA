@@ -101,9 +101,9 @@ def main() -> None:
 * { box-sizing: border-box; }
 body { font-family: "Malgun Gothic", "맑은 고딕", sans-serif; font-size: 10pt; line-height: 1.52; color: #1b2741; }
 h1 { font-size: 23pt; color: #174dc7; margin: 0 0 8mm; padding-bottom: 4mm; border-bottom: 2px solid #3464e8; }
-h2 { font-size: 14pt; color: #163a89; margin: 8mm 0 3mm; padding-bottom: 1mm; border-bottom: 1px solid #cbd8f4; break-after: avoid; }
+h2 { font-size: 14pt; color: #163a89; margin: 6mm 0 3mm; padding-bottom: 1mm; border-bottom: 1px solid #cbd8f4; break-after: avoid; }
 h3 { font-size: 11pt; color: #163a89; margin: 5mm 0 2mm; break-after: avoid; }
-p { margin: 0 0 3.5mm; orphans: 3; widows: 3; }
+p { margin: 0 0 3mm; orphans: 3; widows: 3; }
 table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; font-size: 8.3pt; line-height: 1.42; table-layout: fixed; }
 thead { display: table-header-group; }
 th { background: #eaf0ff; color: #17377b; text-align: left; font-weight: bold; }
