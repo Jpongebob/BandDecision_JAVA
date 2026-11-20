@@ -71,18 +71,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\run-gui.ps1 -Demo
 
 ## 저장과 확인
 
-데이터는 프로젝트의 `data/`에 UTF-8 파일로 자동 저장되고 재실행 시 복원됩니다. Demo와 일반 데이터는 별도 파일입니다. `data/`와 컴파일 결과 `out/`은 GitHub 저장소에 포함되지 않습니다. **같은 데이터 파일을 두 창에서 동시에 편집하지 마세요.** 이전 저장 형식(v1/v2)은 읽을 수 있으며 변환 전 원본을 보관하고 새 저장은 v3 형식으로 합니다.
+데이터는 프로젝트의 `data/`에 UTF-8 파일로 자동 저장되고 재실행 시 복원됩니다. Demo와 일반 데이터는 별도 파일입니다. **공유용 `data/demo.properties`만 Git에 포함**하며 일반 데이터·백업과 컴파일 결과 `out/`은 제외합니다. Demo에서 입력한 내용은 이 파일에 저장되며 커밋·푸시 후 GitHub에도 반영됩니다. 앱 저장 자체가 자동 커밋·푸시를 실행하지는 않습니다. **같은 데이터 파일을 두 창에서 동시에 편집하지 마세요.** 이전 저장 형식(v1/v2)은 읽을 수 있으며 변환 전 원본을 보관하고 새 저장은 v3 형식으로 합니다.
 
 ```powershell
 .\build.ps1 -Test
 ```
 
-2026-11-19에 개발 지원 도구가 실제 실행한 자동 검사는 **기능 181개 + Swing 200개**, 종료 코드 0이었습니다. 별도 화면 렌더 검사도 Swing 200개를 통과했습니다. 네이티브 창의 전체 마우스 시연과 다른 PC에서의 실행은 별도로 확인해야 합니다. 상세 조건·결과는 [검증 기록](docs/VERIFICATION.md)에 있습니다.
+2026-11-19에 개발 지원 도구가 실제 실행한 자동 검사는 **기능 181개 + Swing 200개**, 종료 코드 0이었습니다. 별도 화면 렌더 검사도 Swing 200개를 통과했습니다. 네이티브 창의 전체 마우스 시연과 다른 PC에서의 실행은 별도로 확인해야 합니다. 상세 조건·결과는 로컬 `docs/VERIFICATION.md`에 있습니다.
 
 ## 개발 문서
 
-- [제출용 개발 문서](docs/DEVELOPMENT_REPORT.md) · [편집용 Word](docs/BandDecision_Development_Report.docx) · [PDF](docs/BandDecision_Development_Report.pdf): 문제, 요구사항·완료 기준, 설계, 변경 이유, 테스트 개선, 실행 안내
-- [개발 기록](DEVELOPMENT.md) · [현재 구현](IMPLEMENTATION.md) · [평가 기준 대응](docs/EVALUATION.md)
-- [사용 예시](docs/USAGE.md) · [제출 점검](docs/SUBMISSION.md) · [변경 이력](docs/CHANGELOG.md) · [설계 결정](docs/DECISIONS.md) · [남은 문제](docs/ISSUES.md)
+`docs/`는 로컬에서 관리하며 GitHub에는 포함하지 않습니다. 제출용 보고서·Word·PDF와 변경·검증 기록은 로컬 `docs/`에 있습니다. 저장소를 새로 받으면 이 문서들은 포함되지 않으므로 제출용 PDF는 별도로 준비해야 합니다.
 
-[`SPEC.md`](SPEC.md)는 초기 명세입니다. 이후 사용자 요청으로 바뀐 정책은 이 README와 [설계 결정 기록](docs/DECISIONS.md)을 따릅니다.
+- [개발 기록](DEVELOPMENT.md) · [현재 구현](IMPLEMENTATION.md)
+
+[`SPEC.md`](SPEC.md)는 초기 명세입니다. 이후 사용자 요청으로 바뀐 정책은 이 README와 로컬 `docs/DECISIONS.md`를 따릅니다.

@@ -2,5 +2,7 @@ out/
 *.class
 .idea/
 *.iml
-data/
+/data/*
+!/data/demo.properties
+/docs/
 tmp/
