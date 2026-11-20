@@ -9,7 +9,7 @@ public final class BandDecision {
     };
     private final AttendanceService attendance = new AttendanceService();
     private final SongService songs = new SongService();
-    public static final int MAX_PLANS = 5;
+    public static final int MAX_PLANS = 10;
     private ConfirmedPlan[] confirmedPlans = new ConfirmedPlan[0];
     private int nextPlanId = 1;
     public Member[] getMembers() { return members.clone(); }
@@ -43,7 +43,7 @@ public final class BandDecision {
         throw new IllegalArgumentException("존재하지 않는 계획 ID입니다.");
     }
     void restorePlan(int id, RehearsalPlan plan) {
-        if (confirmedPlans.length >= MAX_PLANS) throw new IllegalArgumentException("확정 계획은 최대 5개까지 저장할 수 있습니다.");
+        if (confirmedPlans.length >= MAX_PLANS) throw new IllegalArgumentException("확정 계획은 최대 " + MAX_PLANS + "개까지 저장할 수 있습니다.");
         for (ConfirmedPlan entry : confirmedPlans) if (entry.id() == id) throw new IllegalArgumentException("중복 계획 ID입니다.");
         ConfirmedPlan entry = new ConfirmedPlan(id, plan);
         confirmedPlans = Arrays.copyOf(confirmedPlans, confirmedPlans.length + 1);
@@ -81,7 +81,7 @@ public final class BandDecision {
         confirm(date, ids, today, approved == null ? "" : approved.getLocation(), approved, partialApproved);
     }
     public void confirm(LocalDate date, int[] ids, LocalDate today, String location, RehearsalPlan approved, boolean partialApproved) {
-        if (confirmedPlans.length >= MAX_PLANS) throw new IllegalArgumentException("확정 계획은 최대 5개입니다. 기존 계획을 수정하거나 삭제하세요.");
+        if (confirmedPlans.length >= MAX_PLANS) throw new IllegalArgumentException("확정 계획은 최대 " + MAX_PLANS + "개입니다. 기존 계획을 수정하거나 삭제하세요.");
         restorePlan(nextPlanId, validatedPlan(date, ids, today, location, approved, partialApproved));
     }
     public void updatePlan(int id, LocalDate date, int[] ids, LocalDate today, RehearsalPlan approved, boolean partialApproved) {

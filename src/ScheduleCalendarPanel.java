@@ -351,12 +351,9 @@ public final class ScheduleCalendarPanel extends JPanel {
         undoState = null;
     }
     private String planSummary(LocalDate date) {
-        StringBuilder result = new StringBuilder();
-        for (ConfirmedPlan entry : plans.get()) if (entry.plan().getDate().equals(date)) {
-            if (result.length() > 0) result.append(", ");
-            result.append('#').append(entry.id());
-        }
-        return result.toString();
+        int count = 0;
+        for (ConfirmedPlan entry : plans.get()) if (entry.plan().getDate().equals(date)) count++;
+        return count == 0 ? "" : count + "건";
     }
     public void refresh() {
         if (!finishEditing()) return;

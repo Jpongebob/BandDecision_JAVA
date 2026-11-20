@@ -293,8 +293,7 @@ public final class AcceptanceTest {
         check(app.getConfirmedPlans().length == 5 && app.getConfirmedPlans()[4].id() == 5, "확정 계획 5개 추가·ID 유지");
         String first = app.findPlan(1).plan().describe();
         RehearsalPlan extra = app.preview(BASE.plusDays(10), ids, BASE);
-        rejects(() -> app.confirm(BASE.plusDays(10), ids, BASE, extra, true), "6번째 계획 추가 거절");
-        check(app.getConfirmedPlans().length == 5 && app.findPlan(1).plan().describe().equals(first), "최대 개수 초과 시 기존 계획 보존");
+        check(app.getConfirmedPlans().length == 5 && app.findPlan(1).plan().describe().equals(first), "기존 계획 내용 보존");
         RehearsalPlan before = app.findPlan(3).plan();
         rejects(() -> app.updatePlan(3, BASE.plusDays(10), ids, BASE, extra, false), "5개 상태의 수정도 부분 참석 동의 필요");
         check(app.findPlan(3).plan() == before, "실패한 수정은 기존 스냅샷 유지");
@@ -304,7 +303,7 @@ public final class AcceptanceTest {
         RehearsalPlan changed = app.preview(BASE.plusDays(10), new int[] {2}, BASE);
         app.updatePlan(3, BASE.plusDays(10), new int[] {2}, BASE, changed, true);
         check(app.getConfirmedPlans().length == 5 && app.findPlan(3).plan().sameContent(changed)
-            && app.findPlan(1).plan().describe().equals(first), "5개가 차도 선택 계획만 ID 유지하며 수정");
+            && app.findPlan(1).plan().describe().equals(first), "선택 계획만 ID 유지하며 수정");
         rejects(() -> app.updatePlan(99, BASE, ids, BASE, extra, true), "없는 계획 수정 거절");
         rejects(() -> app.deletePlan(99), "없는 계획 삭제 거절");
         app.deletePlan(2);
@@ -344,9 +343,9 @@ public final class AcceptanceTest {
             check(Arrays.equals(original, Files.readAllBytes(directory.resolve("plans.properties.v2.bak"))), "v2 파일 v3 저장 전 원본 백업");
             Properties invalid = new Properties();
             try (java.io.Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) { invalid.load(reader); }
-            invalid.setProperty("plans", "6");
+            invalid.setProperty("plans", "11");
             try (java.io.Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) { invalid.store(writer, "invalid"); }
-            rejectsLoad(store, "6개 초과 계획 파일 거부");
+            rejectsLoad(store, "10개 한도 초과 계획 파일 거부");
             invalid.setProperty("plans", "1"); invalid.setProperty("plans.nextId", "1");
             try (java.io.Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) { invalid.store(writer, "invalid"); }
             rejectsLoad(store, "잘못된 다음 계획 ID 파일 거부");

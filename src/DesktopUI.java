@@ -54,7 +54,8 @@ public final class DesktopUI extends JFrame {
     private JPanel difficultyGrid;
     private final JTable voteTable = table("파트", "찬반", "반대 사유");
     private final JTable dateTable = table("순위", "날짜", "참석 인원");
-    private final JTable recommendationTable = table("순위", "제목", "아티스트", "찬성", "총 부담", "추천 점수");
+    private final JTable recommendationTable = table("선택", "순위", "제목", "아티스트", "찬성", "총 부담", "점수");
+    private final JLabel selectedPlanSongs = new JLabel("선택한 곡 0개");
     private final JTextArea dateDetail = textArea(5);
     private final JTextArea planDetail = textArea(14);
     private final JTable plansTable = table("계획 ID", "날짜", "장소", "참석", "곡 수");
@@ -393,7 +394,7 @@ public final class DesktopUI extends JFrame {
         JPanel body = new JPanel(new BorderLayout(0, 12)); body.setOpaque(false);
         body.add(row(button("확정된 계획", this::showPlanList), button("새 합주 만들기", () -> {
             if (app.getConfirmedPlans().length >= BandDecision.MAX_PLANS)
-                throw new IllegalArgumentException("최대 5개입니다. 기존 계획을 수정하거나 삭제하세요.");
+                throw new IllegalArgumentException("최대 " + BandDecision.MAX_PLANS + "개입니다. 기존 계획을 수정하거나 삭제하세요.");
             editingPlanId = -1; planLocation.setText(""); refresh(); showPlanBuilder();
         })), BorderLayout.NORTH);
         planList = planPanel(); planBuilder = recommendationsPanel();
@@ -527,7 +528,7 @@ public final class DesktopUI extends JFrame {
     }
 
     private JPanel recommendationsPanel() {
-        JPanel panel = page("추천을 확인하고 직접 확정하세요", "왼쪽에서 날짜 1개, 오른쪽에서 곡 1개 이상을 선택하세요. 여러 곡은 Ctrl 또는 Shift를 누르고 선택합니다.");
+        JPanel panel = page("추천을 확인하고 직접 확정하세요", "왼쪽에서 날짜를 고르고, 오른쪽에서 함께 연주할 곡을 체크하세요. 이미 확정된 날짜는 제외됩니다.");
         JPanel dates = new JPanel(new BorderLayout(0, 8));
         dateDetail.setRows(2); dateDetail.setMargin(new java.awt.Insets(9, 14, 9, 14));
         dateTable.setRowHeight(44);
@@ -535,15 +536,28 @@ public final class DesktopUI extends JFrame {
         dates.add(UiTheme.scroll(dateTable), BorderLayout.CENTER);
         dates.add(UiTheme.scroll(dateDetail), BorderLayout.SOUTH);
         JPanel recommended = new JPanel(new BorderLayout(0, 8));
-        int[] widths = {46, 130, 130, 60, 70, 80};
+        recommendationTable.setModel(new DefaultTableModel(new String[] {"선택", "순위", "제목", "아티스트", "찬성", "총 부담", "점수"}, 0) {
+            private static final long serialVersionUID = 1L;
+            @Override public Class<?> getColumnClass(int column) { return column == 0 ? Boolean.class : Object.class; }
+            @Override public boolean isCellEditable(int row, int column) { return column == 0; }
+        });
+        model(recommendationTable).addTableModelListener(e -> {
+            if (!refreshing) updatePlanSongCount();
+        });
+        int[] widths = {50, 46, 150, 130, 60, 70, 80};
         for (int i = 0; i < widths.length; i++) recommendationTable.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
+        recommendationTable.getColumnModel().getColumn(0).setMinWidth(42);
+        recommendationTable.getColumnModel().getColumn(0).setMaxWidth(54);
+        recommendationTable.getColumnModel().getColumn(1).setMaxWidth(50);
+        recommendationTable.getColumnModel().getColumn(6).setMinWidth(65);
+        recommendationTable.getTableHeader().setToolTipText("추천 점수 = 찬성 × 3 - 총 부담 × 2");
         dateTable.getColumnModel().getColumn(0).setPreferredWidth(55);
         dateTable.getColumnModel().getColumn(1).setPreferredWidth(180);
         dateTable.getColumnModel().getColumn(2).setPreferredWidth(110);
         recommended.add(new JLabel("곡 추천 · 전원 투표 + 2/3 이상 찬성"), BorderLayout.NORTH);
-        recommendationTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         recommended.add(UiTheme.scroll(recommendationTable), BorderLayout.CENTER);
-        recommended.add(new JLabel("점수 = 찬성 × 3 - 총 부담 × 2"), BorderLayout.SOUTH);
+        selectedPlanSongs.setToolTipText("추천 점수 = 찬성 × 3 - 총 부담 × 2");
+        recommended.add(row(selectedPlanSongs), BorderLayout.SOUTH);
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, dates, recommended);
         split.setResizeWeight(0.42); split.setBorder(null); split.setDividerSize(18); panel.add(split, BorderLayout.CENTER);
         dateTable.getSelectionModel().addListSelectionListener(e -> { if (!refreshing) showDateDetails(); });
@@ -555,6 +569,22 @@ public final class DesktopUI extends JFrame {
             row(new JLabel("합주 장소"), planLocation),
             row(button("최신 데이터로 다시 추천", this::refresh), confirmButton, cancelPlanEdit)), BorderLayout.SOUTH);
         return panel;
+    }
+    int[] selectedPlanSongIds() {
+        int[] ids = new int[recommendationTable.getRowCount()];
+        int count = 0;
+        for (int row = 0; row < recommendationTable.getRowCount(); row++)
+            if (Boolean.TRUE.equals(recommendationTable.getValueAt(row, 0)))
+                ids[count++] = currentRecommendations[row].getSong().getId();
+        return java.util.Arrays.copyOf(ids, count);
+    }
+    private void updatePlanSongCount() {
+        selectedPlanSongs.setText("선택한 곡 " + selectedPlanSongIds().length + "개");
+    }
+    private boolean planDateAvailable(LocalDate date) {
+        for (ConfirmedPlan entry : app.getConfirmedPlans())
+            if (entry.id() != editingPlanId && entry.plan().getDate().equals(date)) return false;
+        return true;
     }
     private void showDateDetails() {
         int index = dateTable.getSelectedRow();
@@ -569,12 +599,12 @@ public final class DesktopUI extends JFrame {
     }
     private void confirmPlan() {
         if (editingPlanId < 0 && app.getConfirmedPlans().length >= BandDecision.MAX_PLANS)
-            throw new IllegalArgumentException("확정 계획은 최대 5개입니다. 기존 계획을 수정하거나 삭제하세요.");
+            throw new IllegalArgumentException("확정 계획은 최대 " + BandDecision.MAX_PLANS + "개입니다. 기존 계획을 수정하거나 삭제하세요.");
         int index = selectedRow(dateTable, "추천 날짜를 선택하세요.");
-        int[] rows = recommendationTable.getSelectedRows();
-        if (rows.length == 0) throw new IllegalArgumentException("추천곡을 하나 이상 선택하세요.");
+        int[] ids = selectedPlanSongIds();
+        if (ids.length == 0) throw new IllegalArgumentException("함께 연주할 곡을 하나 이상 체크하세요.");
         LocalDate date = LocalDate.parse(dateTable.getValueAt(index, 1).toString());
-        int[] ids = new int[rows.length]; for (int i = 0; i < rows.length; i++) ids[i] = currentRecommendations[rows[i]].getSong().getId();
+        if (!planDateAvailable(date)) throw new IllegalArgumentException("이미 합주가 확정된 날짜입니다. 다른 날짜를 선택하세요.");
         String location = planLocation.getText().trim();
         RehearsalPlan preview = app.preview(date, ids, LocalDate.now(), location);
         boolean partial = preview.getAttendees().length < members.length;
@@ -589,18 +619,18 @@ public final class DesktopUI extends JFrame {
         editingPlanId = -1;
         changed(); showPlanList();
         for (int row = 0; row < plansTable.getRowCount(); row++)
-            if ((Integer) plansTable.getValueAt(row, 0) == changedId) plansTable.setRowSelectionInterval(row, row);
+            if ((Integer) model(plansTable).getValueAt(row, 0) == changedId) plansTable.setRowSelectionInterval(row, row);
     }
     private JPanel planPanel() {
-        JPanel panel = page("확정 합주 계획", "최대 5개까지 보관합니다. 목록에서 선택하여 조회·수정·삭제하세요. 기존 기록은 명시적으로 수정할 때만 바뀝니다.");
+        JPanel panel = page("확정 합주 계획", "최대 " + BandDecision.MAX_PLANS + "개까지 보관합니다. 날짜순 목록에서 선택해 조회·수정·삭제하세요.");
         upcomingPlansButton = button("예정된 계획", () -> { showPastPlans = false; refresh(); });
         pastPlansButton = button("이전 내역", () -> { showPastPlans = true; refresh(); });
         JPanel categories = row(upcomingPlansButton, pastPlansButton);
-        plansTable.getColumnModel().getColumn(0).setPreferredWidth(65);
+        plansTable.removeColumn(plansTable.getColumnModel().getColumn(0));
+        plansTable.getColumnModel().getColumn(0).setPreferredWidth(140);
         plansTable.getColumnModel().getColumn(1).setPreferredWidth(140);
-        plansTable.getColumnModel().getColumn(2).setPreferredWidth(140);
-        plansTable.getColumnModel().getColumn(3).setPreferredWidth(65);
-        plansTable.getColumnModel().getColumn(4).setPreferredWidth(55);
+        plansTable.getColumnModel().getColumn(2).setPreferredWidth(65);
+        plansTable.getColumnModel().getColumn(3).setPreferredWidth(55);
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, UiTheme.scroll(plansTable), UiTheme.scroll(planDetail));
         split.setResizeWeight(0.36); split.setBorder(null); split.setDividerSize(12);
         JPanel listBody = new JPanel(new BorderLayout(0, 8)); listBody.setOpaque(false);
@@ -609,19 +639,19 @@ public final class DesktopUI extends JFrame {
         plansTable.getSelectionModel().addListSelectionListener(e -> { if (!refreshing) showSelectedPlan(); });
         panel.add(row(button("선택 계획 수정", this::startPlanEdit), button("선택 계획 삭제", () -> {
             int id = selectedPlanId();
-            if (!ask("계획 #" + id + "을 삭제할까요? 날짜 응답과 후보곡은 유지됩니다.")) return;
+            if (!ask(app.findPlan(id).plan().getDate() + " 합주 계획을 삭제할까요? 날짜 응답과 후보곡은 유지됩니다.")) return;
             app.deletePlan(id); if (editingPlanId == id) editingPlanId = -1; changed();
         })), BorderLayout.SOUTH);
         return panel;
     }
     private int selectedPlanId() {
-        return (Integer) plansTable.getValueAt(selectedRow(plansTable, "수정하거나 삭제할 계획을 선택하세요."), 0);
+        return (Integer) model(plansTable).getValueAt(selectedRow(plansTable, "수정하거나 삭제할 계획을 선택하세요."), 0);
     }
     private void showSelectedPlan() {
         int row = plansTable.getSelectedRow();
         planDetail.setText(row < 0 ? app.getConfirmedPlans().length == 0
             ? "아직 확정한 합주가 없어요.\n위의 '새 합주 만들기'에서 날짜와 곡을 선택해보세요." : "확정 계획을 목록에서 선택하세요."
-            : app.findPlan((Integer) plansTable.getValueAt(row, 0)).plan().describe() + "\n상태: 확정 완료");
+            : app.findPlan((Integer) model(plansTable).getValueAt(row, 0)).plan().describe() + "\n상태: 확정 완료");
         planDetail.setCaretPosition(0);
     }
     private void startPlanEdit() {
@@ -632,7 +662,7 @@ public final class DesktopUI extends JFrame {
             if (plan.getDate().toString().equals(dateTable.getValueAt(row, 1).toString())) dateTable.setRowSelectionInterval(row, row);
         for (int row = 0; row < recommendationTable.getRowCount(); row++) {
             String prefix = "[ID " + currentRecommendations[row].getSong().getId() + "] ";
-            for (String label : plan.getSongs()) if (label.startsWith(prefix)) recommendationTable.addRowSelectionInterval(row, row);
+            for (String label : plan.getSongs()) if (label.startsWith(prefix)) recommendationTable.setValueAt(true, row, 0);
         }
         showPlanBuilder();
     }
@@ -675,28 +705,34 @@ public final class DesktopUI extends JFrame {
             refreshVotes();
             model(dateTable).setRowCount(0); dateDetail.setText("날짜를 선택하면 참석자와 불참 사유가 표시됩니다.");
             DateRecommendation[] dates = DateRecommender.recommend(attendance, LocalDate.now());
-            for (int i = 0; i < dates.length; i++) model(dateTable).addRow(new Object[] {i + 1, dates[i].getDate(), dates[i].getAttendance() + "/" + members.length});
-            recommendationNotice.setText(dates.length == 0 ? "전원 응답이 모인 합주 가능 날짜가 없습니다." : "날짜별 전원 응답 완료 · 추천 " + dates.length + "개 · 미응답 날짜는 제외합니다.");
+            for (DateRecommendation date : dates) if (planDateAvailable(date.getDate()))
+                model(dateTable).addRow(new Object[] {dateTable.getRowCount() + 1, date.getDate(), date.getAttendance() + "/" + members.length});
+            recommendationNotice.setText(dateTable.getRowCount() == 0 ? "새로 확정할 수 있는 날짜가 없습니다. 미응답·이미 확정된 날짜는 제외됩니다."
+                : "추천 " + dateTable.getRowCount() + "개 · 미응답·확정 날짜 제외" + (editingPlanId >= 0 ? " · 수정 대상 날짜 유지" : ""));
             model(recommendationTable).setRowCount(0);
             SongRecommendation[] recommended = SongRecommender.recommend(songs, members);
             currentRecommendations = recommended;
             for (int i = 0; i < recommended.length; i++) {
                 SongRecommendation r = recommended[i]; Song song = r.getSong();
-                model(recommendationTable).addRow(new Object[] {i + 1, song.getTitle(), song.getArtist(), r.getApprovals(), r.getTotalBurden(), r.getScore()});
+                model(recommendationTable).addRow(new Object[] {false, i + 1, song.getTitle(), song.getArtist(), r.getApprovals(), r.getTotalBurden(), r.getScore()});
             }
+            updatePlanSongCount();
             confirmButton.setText(editingPlanId < 0 ? "선택한 날짜와 곡으로 계획 확정" : "선택 계획 수정 확정");
             cancelPlanEdit.setVisible(editingPlanId >= 0);
-            editingNotice.setText(editingPlanId < 0 ? "확정 계획 " + app.getConfirmedPlans().length + "/5개 · 새 계획 추가"
-                : "계획 #" + editingPlanId + " 수정 중 · 현재 추천에서 날짜와 곡을 선택하세요.");
+            editingNotice.setText(editingPlanId < 0 ? "확정 계획 " + app.getConfirmedPlans().length + "/" + BandDecision.MAX_PLANS + "개 · 새 계획 추가"
+                : app.findPlan(editingPlanId).plan().getDate() + " 합주 수정 중 · 날짜와 곡을 선택하세요.");
             confirmButton.setEnabled(dateTable.getRowCount() > 0 && recommended.length > 0
                 && (editingPlanId >= 0 || app.getConfirmedPlans().length < BandDecision.MAX_PLANS));
             if (recommended.length == 0) recommendationNotice.setText(recommendationNotice.getText() + " / 추천 자격을 충족하는 곡이 없습니다.");
             int oldRow = plansTable.getSelectedRow();
-            int selectedId = oldRow < 0 ? -1 : (Integer) plansTable.getValueAt(oldRow, 0);
+            int selectedId = oldRow < 0 ? -1 : (Integer) model(plansTable).getValueAt(oldRow, 0);
             upcomingPlansButton.setText(showPastPlans ? "예정된 계획" : "✓ 예정된 계획");
             pastPlansButton.setText(showPastPlans ? "✓ 이전 내역" : "이전 내역");
             model(plansTable).setRowCount(0); int selectedPlanRow = -1;
-            for (ConfirmedPlan entry : app.getConfirmedPlans()) {
+            ConfirmedPlan[] orderedPlans = app.getConfirmedPlans();
+            java.util.Arrays.sort(orderedPlans, java.util.Comparator.comparing((ConfirmedPlan entry) -> entry.plan().getDate())
+                .thenComparingInt(ConfirmedPlan::id));
+            for (ConfirmedPlan entry : orderedPlans) {
                 RehearsalPlan plan = entry.plan();
                 if (plan.getDate().isBefore(LocalDate.now()) != showPastPlans) continue;
                 if (entry.id() == selectedId) selectedPlanRow = plansTable.getRowCount();

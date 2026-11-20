@@ -233,14 +233,14 @@ public final class GuiSmokeTest {
             find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "새 합주 만들기").doClick();
             JTable dates = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "순위");
             JTable songs = tableWithColumn(workspace.page(WorkspaceView.Page.PLANS), "제목");
-            dates.setRowSelectionInterval(0, 0); songs.setRowSelectionInterval(0, 0);
+            dates.setRowSelectionInterval(0, 0); songs.setValueAt(true, 0, 0);
             check(frame.isBuildingPlan(), "같은 합주 계획 메뉴에서 만들기로 전환");
             byte[] saved;
             try { saved = Files.readAllBytes(file); } catch (java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
             find(workspace, JButton.class, "밴드 설정").doClick();
             check(workspace.selected() == WorkspaceView.Page.SETTINGS, "멤버 실력은 별도 밴드 설정에서 관리");
             find(workspace, JButton.class, "합주 계획").doClick();
-            check(frame.isBuildingPlan() && dates.getSelectedRow() == 0 && songs.getSelectedRow() == 0,
+            check(frame.isBuildingPlan() && dates.getSelectedRow() == 0 && Boolean.TRUE.equals(songs.getValueAt(0, 0)),
                 "작업 메뉴를 왕복해도 계획 작성 선택 보존");
             find(workspace, JButton.class, "일정").doClick();
             check(calendar.getSelectedDate().equals(LocalDate.now()) && profile.getSelectedIndex() == 3,
@@ -331,7 +331,7 @@ public final class GuiSmokeTest {
             preview.showPlanBuilder();
             JTable dates = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "순위");
             JTable songs = tableWithColumn(workspace.page(WorkspaceView.Page.PLANS), "제목");
-            dates.setRowSelectionInterval(0, 0); songs.setRowSelectionInterval(0, 1);
+            dates.setRowSelectionInterval(0, 0); songs.setValueAt(true, 0, 0); songs.setValueAt(true, 1, 0);
             preview.validate(); layoutAll(preview.getContentPane()); render(preview, "workspace-builder");
         } finally { preview.dispose(); }
     }
@@ -377,14 +377,14 @@ public final class GuiSmokeTest {
             app.restorePlan(2, new RehearsalPlan(LocalDate.now().plusDays(1),
                 new String[] {"보컬"}, new String[] {"기타 | 일정"}, new String[] {"검사곡 — 밴드"}, "합주실 A"));
             frame.refresh();
-            JTable plans = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "계획 ID");
-            check(plans.getRowCount() == 1 && plans.getValueAt(0, 0).equals(2)
-                && "장소".equals(plans.getColumnName(2)) && "합주실 A".equals(plans.getValueAt(0, 2)),
+            JTable plans = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "날짜");
+            check(plans.getRowCount() == 1 && plans.getModel().getValueAt(0, 0).equals(2)
+                && "장소".equals(plans.getColumnName(1)) && "합주실 A".equals(plans.getModel().getValueAt(0, 2)),
                 "예정된 계획과 합주 장소를 기본 목록에 표시");
             find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "이전 내역").doClick();
-            check(plans.getRowCount() == 1 && plans.getValueAt(0, 0).equals(1), "이전 내역에는 지난 계획만 표시");
+            check(plans.getRowCount() == 1 && plans.getModel().getValueAt(0, 0).equals(1), "이전 내역에는 지난 계획만 표시");
             find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "예정된 계획").doClick();
-            check(plans.getRowCount() == 1 && plans.getValueAt(0, 0).equals(2), "예정된 계획으로 다시 전환");
+            check(plans.getRowCount() == 1 && plans.getModel().getValueAt(0, 0).equals(2), "예정된 계획으로 다시 전환");
             check(find(workspace.page(WorkspaceView.Page.PLANS), javax.swing.JTextField.class, null) != null
                 && hasLabel(workspace.page(WorkspaceView.Page.PLANS), "합주 장소"), "계획 작성 화면의 장소 입력란");
             plans.setRowSelectionInterval(0, 0);
@@ -392,6 +392,58 @@ public final class GuiSmokeTest {
             check("합주실 A".equals(find(workspace.page(WorkspaceView.Page.PLANS), javax.swing.JTextField.class, null).getText()),
                 "확정 계획 수정 시 기존 합주 장소를 입력란에 채움");
         } finally { frame.dispose(); }
+    }
+    private static void planOrderAndLimit(Path directory) {
+        BandDecision app = new BandDecision();
+        LocalDate today = LocalDate.now();
+        Song song = app.getSongs().register("정렬 검사", "밴드", new int[] {1,1,1,1,1,1});
+        for (int member = 0; member < 6; member++) song.vote(member, Song.YES, "");
+        int[] ids = {song.getId()};
+        for (int offset = 1; offset <= 11; offset++)
+            for (int member = 0; member < 6; member++) app.getAttendance().respond(member, today.plusDays(offset), 1, "");
+        for (int offset = 10; offset >= 1; offset--) {
+            LocalDate day = today.plusDays(offset);
+            app.confirm(day, ids, today, app.preview(day, ids, today), false);
+        }
+        check(app.getConfirmedPlans().length == 10, "확정 계획 10개 저장 허용");
+        boolean refused = false;
+        try { app.confirm(today.plusDays(11), ids, today, app.preview(today.plusDays(11), ids, today), false); }
+        catch (IllegalArgumentException expected) { refused = true; }
+        check(refused && app.getConfirmedPlans().length == 10 && app.getNextPlanId() == 11, "11번째 계획 거부·기존 10개와 다음 ID 보존");
+        Path file = directory.resolve("order-limit.properties");
+        try {
+            DataStore store = new DataStore(file); store.save(app);
+            check(store.load().getConfirmedPlans().length == 10, "10개 계획 파일 저장·복원");
+            DesktopUI frame = new DesktopUI(app, store, false);
+            try {
+                WorkspaceView workspace = find(frame, WorkspaceView.class, null);
+                JTable plans = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "날짜");
+                check(plans.getColumnCount() == 4 && "장소".equals(plans.getColumnName(1)), "계획 ID 열 숨김·날짜와 장소 표시");
+                check(plans.getValueAt(0, 0).equals(today.plusDays(1)) && plans.getValueAt(9, 0).equals(today.plusDays(10)),
+                    "역순 등록한 확정 계획을 날짜 오름차순으로 표시");
+                check(!find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택한 날짜와 곡으로 계획 확정").isEnabled(),
+                    "계획 10개에서 새 확정 비활성");
+                plans.setRowSelectionInterval(9, 9);
+                find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택 계획 수정").doClick();
+                JTable dates = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "순위");
+                check(dates.getValueAt(dates.getSelectedRow(), 1).equals(today.plusDays(10))
+                    && find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택 계획 수정 확정").isEnabled(),
+                    "ID 숨김·정렬·10개 상태에서도 선택한 계획 날짜로 수정 진입");
+                find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "수정 취소").doClick();
+                plans.setRowSelectionInterval(4, 4);
+                int chosenId = (Integer) plans.getModel().getValueAt(4, 0);
+                LocalDate revised = today.plusDays(11);
+                app.updatePlan(chosenId, revised, ids, today, app.preview(revised, ids, today), false); frame.refresh();
+                check(plans.getSelectedRow() == 9 && plans.getModel().getValueAt(9, 0).equals(chosenId)
+                    && plans.getValueAt(9, 0).equals(revised), "날짜 수정 재정렬 후 같은 내부 ID 선택 유지");
+                app.deletePlan(chosenId); frame.refresh();
+                check(plans.getRowCount() == 9 && find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택한 날짜와 곡으로 계획 확정").isEnabled(),
+                    "10개에서 한 계획 삭제 시 새 확정 다시 허용");
+            } finally { frame.dispose(); }
+        } catch (java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
+        finally {
+            try { Files.deleteIfExists(file); } catch (java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
+        }
     }
     public static void main(String[] args) throws Exception {
         if (java.awt.GraphicsEnvironment.isHeadless()) {
@@ -428,6 +480,7 @@ public final class GuiSmokeTest {
                 completionAndUndo(directory);
                 workspaceFlows(directory);
                 dynamicMembersUi(directory);
+                planOrderAndLimit(directory);
                 BandDecision app = DemoData.create(LocalDate.now());
                 DesktopUI frame = new DesktopUI(app, new DataStore(file), true);
                 try {
@@ -481,13 +534,28 @@ public final class GuiSmokeTest {
                     check(votes.getRowCount() == 6 && votes.getValueAt(5, 1).equals("반대"), "곡별 투표와 사유 표시");
                     JTable dates = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "순위");
                     JTable recommendedSongs = tableWithColumn(workspace.page(WorkspaceView.Page.PLANS), "제목");
-                    check(recommendedSongs.getColumnCount() == 6 && "제목".equals(recommendedSongs.getColumnName(1)),
+                    check(recommendedSongs.getColumnCount() == 7 && "제목".equals(recommendedSongs.getColumnName(2)),
                         "추천 곡 표에는 내부 ID 대신 곡 제목 표시");
+                    check(recommendedSongs.getColumnClass(0) == Boolean.class && recommendedSongs.isCellEditable(0, 0)
+                        && !recommendedSongs.isCellEditable(0, 2), "곡 선택 칸만 체크박스로 편집");
+                    check(frame.selectedPlanSongIds().length == 0, "처음에는 선택한 곡 없음");
+                    check(recommendedSongs.editCellAt(0, 0), "첫 곡 체크 편집 시작");
+                    ((javax.swing.JCheckBox) recommendedSongs.getEditorComponent()).doClick();
+                    check(recommendedSongs.editCellAt(1, 0), "두 번째 곡 체크 편집 시작");
+                    ((javax.swing.JCheckBox) recommendedSongs.getEditorComponent()).doClick();
+                    int[] checkedIds = frame.selectedPlanSongIds();
+                    check(checkedIds.length == 2 && checkedIds[0] != checkedIds[1] && hasLabel(workspace, "선택한 곡 2개"),
+                        "Ctrl 없이 두 체크박스로 별도 곡 ID와 선택 개수 반영");
+                    recommendedSongs.setRowSelectionInterval(0, 0);
+                    check(java.util.Arrays.equals(checkedIds, frame.selectedPlanSongIds()), "일반 행 클릭은 체크 선택을 바꾸지 않음");
+                    recommendedSongs.setValueAt(false, 0, 0);
+                    check(frame.selectedPlanSongIds().length == 1 && hasLabel(workspace, "선택한 곡 1개"), "한 곡 해제 시 다른 체크 유지");
                     check(dates.getRowCount() == 7, "등록한 후보 7개만 추천");
                     dates.setRowSelectionInterval(0, 0);
                     check(find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택한 날짜와 곡으로 계획 확정").isEnabled(), "추천 자격이 있으면 확정 가능");
                     find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "새 합주 만들기").doClick();
                     check(workspace.selected() == WorkspaceView.Page.PLANS && frame.isBuildingPlan() && dates.getSelectedRow() == -1, "새 추천에서 이전 선택 해제");
+                    check(frame.selectedPlanSongIds().length == 0 && hasLabel(workspace, "선택한 곡 0개"), "새 합주는 이전 곡 체크 초기화");
                     for (WorkspaceView.Page page : WorkspaceView.Page.values()) {
                         workspace.show(page); frame.validate();
                         check(workspace.selected() == page, "작업 메뉴 이동 " + page);
@@ -681,36 +749,49 @@ public final class GuiSmokeTest {
                     check(!app.getConfirmedPlans()[0].plan().describe().contains("[ID "),
                         "확정 계획 설명에도 내부 곡 ID를 노출하지 않음");
                     check("합주 확정".equals(dayButton(calendar, firstDay).getClientProperty("calendar.status"))
-                        && dayButton(calendar, firstDay).getToolTipText().contains("확정 계획 #3")
-                        && hasLabel(calendar, calendar.statusFor(firstDay) + " · 확정 계획 #3"),
+                        && dayButton(calendar, firstDay).getToolTipText().contains("확정 계획")
+                        && hasLabel(calendar, calendar.statusFor(firstDay) + " · 확정 계획 1건"),
                         "확정 계획 날짜의 달력 표시·상세·툴팁");
                     check("합주 확정".equals(dayButton(calendar, original.getDates()[1]).getClientProperty("calendar.status"))
                         && dayButton(calendar, original.getDates()[1]).getBackground().equals(new java.awt.Color(235, 225, 252))
                         && dayButton(calendar, firstDay).getBackground().equals(new java.awt.Color(235, 225, 252))
                         && !Boolean.TRUE.equals(dayButton(calendar, original.getDates()[5]).getClientProperty("calendar.confirmed")),
                         "확정 날짜는 개인 응답·전원 가능 여부와 관계없이 보라색으로 구분");
-                    JTable plans = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "계획 ID");
-                    check(plans.getRowCount() == 5 && !find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택한 날짜와 곡으로 계획 확정").isEnabled(),
-                        "계획 5개 목록 표시·최대 개수 도달 시 신규 확정 비활성");
+                    JTable plans = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "날짜");
+                    check(plans.getRowCount() == 5 && find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택한 날짜와 곡으로 계획 확정").isEnabled(),
+                        "계획 5개 저장 후에도 10개 한도까지 새 합주 가능");
+                    for (int row = 0; row < dates.getRowCount(); row++) {
+                        LocalDate availableDate = (LocalDate) dates.getValueAt(row, 1);
+                        check(java.util.Arrays.stream(app.getConfirmedPlans()).noneMatch(p -> p.plan().getDate().equals(availableDate)),
+                            "새 합주 추천은 이미 확정한 날짜 제외 " + availableDate);
+                    }
                     plans.setRowSelectionInterval(2, 2);
                     find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택 계획 수정").doClick();
                     check(workspace.selected() == WorkspaceView.Page.PLANS && frame.isBuildingPlan() && find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택 계획 수정 확정").isEnabled()
                         && dates.getSelectedRow() >= 0, "5개 상태에서도 선택 계획 수정 가능·기존 날짜 선택 복원");
+                    check(dates.getValueAt(dates.getSelectedRow(), 1).equals(app.findPlan(3).plan().getDate())
+                        && frame.selectedPlanSongIds().length == app.findPlan(3).plan().getSongs().length,
+                        "수정 중인 계획 날짜와 곡 체크 복원");
+                    check(dates.getRowCount() == 3, "수정 시 자기 날짜만 다시 포함하고 다른 네 계획 날짜 제외");
                     find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "수정 취소").doClick();
                     check(workspace.selected() == WorkspaceView.Page.PLANS && !frame.isBuildingPlan() && plans.getRowCount() == 5, "계획 수정 취소는 기존 목록 보존");
                     LocalDate revisedDate = original.getDates()[3];
                     RehearsalPlan revised = app.preview(revisedDate, new int[] {2}, LocalDate.now());
                     app.updatePlan(3, revisedDate, new int[] {2}, LocalDate.now(), revised, true); frame.refresh();
-                    check(dayButton(calendar, revisedDate).getToolTipText().contains("확정 계획 #3")
-                        && !dayButton(calendar, original.getDates()[2]).getToolTipText().contains("확정 계획 #3"),
+                    check(dayButton(calendar, revisedDate).getToolTipText().contains("확정 계획")
+                        && !dayButton(calendar, original.getDates()[2]).getToolTipText().contains("확정 계획"),
                         "계획 날짜 수정 후 달력 확정 표시 이동");
-                    check(plans.getValueAt(2, 0).equals(3) && plans.getValueAt(2, 1).equals(revisedDate), "계획 수정 후 ID·표 갱신");
+                    check(plans.getModel().getValueAt(2, 0).equals(3) && plans.getModel().getValueAt(2, 1).equals(revisedDate), "계획 수정 후 ID·표 갱신");
                     app.deletePlan(2); frame.refresh();
+                    boolean deletedDateAvailable = false;
+                    for (int row = 0; row < dates.getRowCount(); row++)
+                        if (dates.getValueAt(row, 1).equals(original.getDates()[1])) deletedDateAvailable = true;
+                    check(deletedDateAvailable, "계획 삭제 후 해당 날짜가 새 합주 추천에 복귀");
                     check(!Boolean.TRUE.equals(dayButton(calendar, original.getDates()[1]).getClientProperty("calendar.confirmed"))
-                        && !dayButton(calendar, original.getDates()[1]).getToolTipText().contains("확정 계획 #2")
+                        && !dayButton(calendar, original.getDates()[1]).getToolTipText().contains("확정 계획")
                         && !dayButton(calendar, original.getDates()[1]).getBackground().equals(new java.awt.Color(235, 225, 252)),
                         "계획 삭제 후 해당 날짜 확정 표시 제거");
-                    check(plans.getRowCount() == 4 && plans.getValueAt(plans.getSelectedRow(), 0).equals(3), "중간 계획 삭제 후 선택 대상 ID 유지");
+                    check(plans.getRowCount() == 4 && plans.getModel().getValueAt(plans.getSelectedRow(), 0).equals(3), "중간 계획 삭제 후 선택 대상 ID 유지");
                     check(find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택 계획 삭제") != null, "확정 계획 삭제 버튼 제공");
                     find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "새 합주 만들기").doClick();
                     check(find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택한 날짜와 곡으로 계획 확정").isEnabled(), "계획 삭제로 자리 생기면 신규 확정 가능");
