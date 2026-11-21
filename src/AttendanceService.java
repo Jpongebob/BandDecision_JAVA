@@ -104,7 +104,7 @@ public final class AttendanceService {
         if (reason == null || reason.isBlank()) throw new IllegalArgumentException("사유를 입력하세요.");
         respond(member, date, UNAVAILABLE, reason);
     }
-    public boolean isSubmitted(int member) { return isSubmitted(member, LocalDate.now()); }
+    public boolean isSubmitted(int member) { return isSubmitted(member, AppDate.today()); }
     public boolean isSubmitted(int member, LocalDate today) {
         check(member);
         for (LocalDate date = today; !date.isAfter(ScheduleWindow.end(today)); date = date.plusDays(1))
@@ -130,7 +130,7 @@ public final class AttendanceService {
         dates = saved.dates.clone(); answers = new int[dates.length][]; reasons = new String[dates.length][];
         for (int i = 0; i < dates.length; i++) { answers[i] = saved.answers[i].clone(); reasons[i] = saved.reasons[i].clone(); }
     }
-    public boolean allSubmitted() { return allSubmitted(LocalDate.now()); }
+    public boolean allSubmitted() { return allSubmitted(AppDate.today()); }
     public boolean allSubmitted(LocalDate today) {
         for (int i = 0; i < memberCount; i++) if (!isSubmitted(i, today)) return false;
         return true;

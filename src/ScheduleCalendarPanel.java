@@ -66,7 +66,7 @@ public final class ScheduleCalendarPanel extends JPanel {
         super(new BorderLayout(0, 12));
         this.attendance = attendance; this.members = members; this.changed = changed; this.plans = plans;
         bulkMember = memberSelector == null ? new JComboBox<>() : memberSelector;
-        selectedDate = LocalDate.now();
+        selectedDate = AppDate.today();
         for (LocalDate day : attendance.getDates()) if (inWindow(day)) { selectedDate = day; break; }
         month = boundedMonth(YearMonth.from(selectedDate));
         selectedDays = new LocalDate[] {selectedDate};
@@ -162,7 +162,7 @@ public final class ScheduleCalendarPanel extends JPanel {
         add(split, BorderLayout.CENTER);
 
         JPanel footer = new JPanel(new BorderLayout(0, 6)); footer.setOpaque(false);
-        footer.add(action("오늘", () -> selectDate(LocalDate.now())), BorderLayout.WEST);
+        footer.add(action("오늘", () -> selectDate(AppDate.today())), BorderLayout.WEST);
         footer.add(action("선택 해제", this::clearSelection), BorderLayout.EAST);
         footer.add(selectionInfo, BorderLayout.CENTER);
         JPanel legend = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 9, 0)); legend.setOpaque(false);
@@ -243,14 +243,14 @@ public final class ScheduleCalendarPanel extends JPanel {
         LocalDate[] all = selectableMonthDates();
         if (Arrays.equals(selectedDays, all)) { clearSelection(); return; }
         selectedDays = all;
-        if (selectedDays.length > 0 && (!YearMonth.from(selectedDate).equals(month) || selectedDate.isBefore(LocalDate.now()))) selectedDate = selectedDays[0];
+        if (selectedDays.length > 0 && (!YearMonth.from(selectedDate).equals(month) || selectedDate.isBefore(AppDate.today()))) selectedDate = selectedDays[0];
         refresh();
     }
     private LocalDate[] selectableMonthDates() {
         LocalDate[] all = new LocalDate[month.lengthOfMonth()]; int size = 0;
         for (int day = 1; day <= month.lengthOfMonth(); day++) {
             LocalDate date = month.atDay(day);
-            if (!date.isBefore(LocalDate.now())) all[size++] = date;
+            if (!date.isBefore(AppDate.today())) all[size++] = date;
         }
         return Arrays.copyOf(all, size);
     }
@@ -317,7 +317,7 @@ public final class ScheduleCalendarPanel extends JPanel {
         return false;
     }
     private boolean inWindow(LocalDate date) {
-        return ScheduleWindow.contains(date, LocalDate.now());
+        return ScheduleWindow.contains(date, AppDate.today());
     }
     public void selectDate(LocalDate date) {
         if (date == null) return;
@@ -326,12 +326,12 @@ public final class ScheduleCalendarPanel extends JPanel {
         month = boundedMonth(YearMonth.from(date)); refresh();
     }
     private YearMonth boundedMonth(YearMonth value) {
-        YearMonth current = YearMonth.now();
+        YearMonth current = YearMonth.from(AppDate.today());
         return value.isBefore(current) ? current : value.isAfter(current.plusMonths(1)) ? current.plusMonths(1) : value;
     }
     public void showMonth(int offset) {
         if (offset < 0 || offset > 1) throw new IllegalArgumentException("이번 달과 다음 달만 표시할 수 있습니다.");
-        month = YearMonth.now().plusMonths(offset); refresh();
+        month = YearMonth.from(AppDate.today()).plusMonths(offset); refresh();
     }
     private void moveMonth(int direction) {
         YearMonth target = month.plusMonths(direction);
@@ -340,7 +340,7 @@ public final class ScheduleCalendarPanel extends JPanel {
     public LocalDate getSelectedDate() { return selectedDate; }
     public YearMonth getVisibleMonth() { return month; }
     public String statusFor(LocalDate date) {
-        if (!inWindow(date)) return date.isBefore(LocalDate.now()) ? "지난 날짜" : "추천 기간 밖";
+        if (!inWindow(date)) return date.isBefore(AppDate.today()) ? "지난 날짜" : "추천 기간 밖";
         int pending = attendance.count(date, AttendanceService.UNANSWERED);
         if (pending > 0) return pending == members.length ? "미응답" : "대기 " + pending + "명";
         int available = attendance.count(date, AttendanceService.AVAILABLE);
@@ -362,11 +362,11 @@ public final class ScheduleCalendarPanel extends JPanel {
             LocalDate[] remaining = new LocalDate[selectedDays.length]; int remainingCount = 0;
             for (LocalDate date : selectedDays) if (inWindow(date)) remaining[remainingCount++] = date;
             selectedDays = Arrays.copyOf(remaining, remainingCount);
-            if (rangeStart != null && rangeStart.isBefore(LocalDate.now())) rangeStart = null;
+            if (rangeStart != null && rangeStart.isBefore(AppDate.today())) rangeStart = null;
             month = boundedMonth(month);
             monthTitle.setText(month.getYear() + "년 " + month.getMonthValue() + "월");
-            previousMonth.setEnabled(month.isAfter(YearMonth.now()));
-            nextMonth.setEnabled(month.isBefore(YearMonth.now().plusMonths(1)));
+            previousMonth.setEnabled(month.isAfter(YearMonth.from(AppDate.today())));
+            nextMonth.setEnabled(month.isBefore(YearMonth.from(AppDate.today()).plusMonths(1)));
             previousMonth.setToolTipText(previousMonth.isEnabled() ? "이전 달 보기" : "표시 가능한 첫 달입니다.");
             nextMonth.setToolTipText(nextMonth.isEnabled() ? "다음 달 보기" : "표시 가능한 마지막 달입니다.");
             singleMode.setBackground(rangeSelection ? UiTheme.SOFT : UiTheme.ACCENT_SOFT);
@@ -396,11 +396,11 @@ public final class ScheduleCalendarPanel extends JPanel {
                 boolean valid = day >= 1 && day <= month.lengthOfMonth(); button.setVisible(valid);
                 if (!valid) { button.putClientProperty("date", null); continue; }
                 LocalDate date = month.atDay(day);
-                boolean past = date.isBefore(LocalDate.now()); button.setEnabled(!past);
+                boolean past = date.isBefore(AppDate.today()); button.setEnabled(!past);
                 button.putClientProperty("date", date);
                 String confirmed = planSummary(date);
                 String label = !confirmed.isEmpty() ? "합주 확정"
-                    : inWindow(date) ? statusFor(date) : date.equals(LocalDate.now()) ? "오늘" : "";
+                    : inWindow(date) ? statusFor(date) : date.equals(AppDate.today()) ? "오늘" : "";
                 button.setText(day + " " + label);
                 button.putClientProperty("calendar.number", day);
                 button.putClientProperty("calendar.status", label);

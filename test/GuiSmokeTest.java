@@ -450,6 +450,37 @@ public final class GuiSmokeTest {
             try { Files.deleteIfExists(file); } catch (java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
         }
     }
+    private static void fixedDemoUi(Path directory, boolean renderImages) {
+        AppDate.configure(true);
+        DesktopUI frame = null;
+        try {
+            BandDecision app = DemoData.createPresentation(AppDate.today());
+            frame = new DesktopUI(app, new DataStore(directory.resolve("fixed-demo.properties")), true);
+            WorkspaceView workspace = find(frame, WorkspaceView.class, null);
+            ScheduleCalendarPanel calendar = find(frame, ScheduleCalendarPanel.class, null);
+            check(calendar.getSelectedDate().equals(LocalDate.of(2026,12,9))
+                && calendar.getVisibleMonth().equals(java.time.YearMonth.of(2026,12)), "Demo는 12월9일·12월 달력으로 시작");
+            check(frame.getTitle().contains("2026-12-09"), "창 제목에 Demo 기준일 표시");
+            check(!dayButton(calendar, LocalDate.of(2026,12,8)).isEnabled()
+                && dayButton(calendar, LocalDate.of(2026,12,9)).isEnabled(), "Demo 지난 날짜 비활성 기준도 12월9일");
+            check(!find(calendar,JButton.class,"이전 달").isEnabled() && find(calendar,JButton.class,"다음 달").isEnabled(),
+                "고정 Demo 첫 달 이동 버튼 경계");
+            find(calendar,JButton.class,"다음 달").doClick();
+            check(calendar.getVisibleMonth().equals(java.time.YearMonth.of(2027,1))
+                && !find(calendar,JButton.class,"다음 달").isEnabled(), "Demo 다음 달은 2027년1월·더 다음 달 불가");
+            find(calendar,JButton.class,"오늘").doClick();
+            check(calendar.getSelectedDate().equals(AppDate.DEMO_DATE)
+                && calendar.getVisibleMonth().equals(java.time.YearMonth.of(2026,12)), "오늘 버튼은 고정 12월9일로 복귀");
+            JTable plans = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "날짜");
+            check(plans.getRowCount()==2 && plans.getValueAt(0,0).equals(LocalDate.of(2026,12,10)),
+                "Demo 예정 계획 분류도 고정 기준일 사용");
+            if (renderImages) {
+                frame.addNotify(); frame.validate(); layoutAll(frame.getContentPane()); render(frame,"demo-fixed-calendar");
+                frame.showPlanBuilder(); frame.validate(); layoutAll(frame.getContentPane()); render(frame,"demo-fixed-builder");
+            }
+        } finally { if (frame != null) frame.dispose(); AppDate.configure(false); }
+        check(AppDate.today().equals(LocalDate.now()), "고정 Demo UI 검사 후 일반 날짜 복귀");
+    }
     public static void main(String[] args) throws Exception {
         if (java.awt.GraphicsEnvironment.isHeadless()) {
             System.out.println("SKIP: Swing requires a graphical environment"); return;
@@ -486,6 +517,7 @@ public final class GuiSmokeTest {
                 workspaceFlows(directory);
                 dynamicMembersUi(directory);
                 planOrderAndLimit(directory);
+                fixedDemoUi(directory, args.length > 0 && args[0].equals("--render"));
                 BandDecision app = DemoData.create(LocalDate.now());
                 DesktopUI frame = new DesktopUI(app, new DataStore(file), true);
                 try {

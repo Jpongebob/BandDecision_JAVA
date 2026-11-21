@@ -559,7 +559,20 @@ public final class AcceptanceTest {
                 "연주 안 함과 투표 저장 복원");
         } finally { Files.deleteIfExists(file); Files.delete(folder); }
     }
+    private static void fixedDemoDate() {
+        AppDate.configure(true);
+        try {
+            check(AppDate.today().equals(LocalDate.of(2026,12,9)), "Demo 오늘은 2026-12-09로 고정");
+            check(ScheduleWindow.end(AppDate.today()).equals(LocalDate.of(2027,1,31)), "고정 Demo 추천 범위는 2027-01-31까지");
+            BandDecision app = DemoData.createPresentation(AppDate.today());
+            check(app.getAttendance().isSubmitted(0) && !app.getAttendance().isSubmitted(5), "응답 완료 판단도 고정 기준일 사용");
+            check(app.getAttendance().getDates()[0].equals(AppDate.DEMO_DATE)
+                && app.getConfirmedPlans().length == 2, "고정 기준일의 일정·확정 계획 생성");
+        } finally { AppDate.configure(false); }
+        check(AppDate.today().equals(LocalDate.now()), "일반 모드는 실제 날짜로 복귀");
+    }
     public static void main(String[] args) throws Exception {
+        fixedDemoDate();
         for (LocalDate today : new LocalDate[] {LocalDate.now(), LocalDate.of(2026, 12, 31), LocalDate.of(2028, 2, 29)}) {
             BandDecision demo = DemoData.createPresentation(today);
             check(demo.getSongs().getSongs().length == 8 && demo.getConfirmedPlans().length == 2,

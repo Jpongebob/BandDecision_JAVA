@@ -4,5 +4,6 @@ out/
 *.iml
 /data/*
 !/data/demo.properties
+!/data/demo-2026-12-09.properties
 /docs/
 tmp/

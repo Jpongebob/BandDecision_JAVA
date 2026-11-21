@@ -100,7 +100,7 @@ public final class DesktopUI extends JFrame {
     }
 
     public DesktopUI(BandDecision app, DataStore store, boolean demo) {
-        super("BandDecision" + (demo ? " · 샘플 데이터" : ""));
+        super("BandDecision" + (demo ? " · Demo · 기준일 " + AppDate.today() : ""));
         this.app = app; this.store = store;
         members = app.getMembers(); attendance = app.getAttendance(); songs = app.getSongs();
         UiTheme.styleCombo(activeMember); UiTheme.styleCombo(voteChoice);
@@ -618,7 +618,7 @@ public final class DesktopUI extends JFrame {
         LocalDate date = LocalDate.parse(dateTable.getValueAt(index, 1).toString());
         if (!planDateAvailable(date)) throw new IllegalArgumentException("이미 합주가 확정된 날짜입니다. 다른 날짜를 선택하세요.");
         String location = planLocation.getText().trim();
-        RehearsalPlan preview = app.preview(date, ids, LocalDate.now(), location);
+        RehearsalPlan preview = app.preview(date, ids, AppDate.today(), location);
         boolean partial = preview.getAttendees().length < members.length;
         if (partial && !ask("주의: 전원 합주가 아닙니다. 빠지는 멤버와 사유:\n"
             + String.join("\n", preview.getAbsentees()) + "\n이 날짜로 진행할까요?")) return;
@@ -626,8 +626,8 @@ public final class DesktopUI extends JFrame {
         if (JOptionPane.showConfirmDialog(this, UiTheme.scroll(detail), editingPlanId < 0 ? "이 계획을 추가할까요?" : "선택한 계획을 수정할까요?",
             JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE) != JOptionPane.YES_OPTION) return;
         int changedId = editingPlanId < 0 ? app.getNextPlanId() : editingPlanId;
-        if (editingPlanId < 0) app.confirm(date, ids, LocalDate.now(), location, preview, partial);
-        else app.updatePlan(editingPlanId, date, ids, LocalDate.now(), location, preview, partial);
+        if (editingPlanId < 0) app.confirm(date, ids, AppDate.today(), location, preview, partial);
+        else app.updatePlan(editingPlanId, date, ids, AppDate.today(), location, preview, partial);
         editingPlanId = -1;
         changed(); showPlanList();
         for (int row = 0; row < plansTable.getRowCount(); row++)
@@ -683,7 +683,7 @@ public final class DesktopUI extends JFrame {
         int selected = scheduleCalendar.getSelectedMember();
         boolean completed = attendance.isSubmitted(selected);
         submittedValue.setText(completed ? "응답 완료" : "응답 미완료");
-        scheduleOwner.setText(members[selected].displayName() + " · " + ScheduleWindow.label(LocalDate.now()) + " 전체 날짜 기준");
+        scheduleOwner.setText(members[selected].displayName() + " · " + ScheduleWindow.label(AppDate.today()) + " 전체 날짜 기준");
         submittedValue.setToolTipText("오늘부터 다음 달 말일까지 모든 날짜에 가능/불가 응답하면 완료입니다.");
     }
     /** 갱신 시 선택을 해제해 이전 행 번호로 다른 항목을 수정하는 일을 방지한다. */
@@ -716,7 +716,7 @@ public final class DesktopUI extends JFrame {
             if (selectedIndex >= 0) songTable.setRowSelectionInterval(selectedIndex, selectedIndex);
             refreshVotes();
             model(dateTable).setRowCount(0); dateDetail.setText("날짜를 선택하면 참석자와 불참 사유가 표시됩니다.");
-            DateRecommendation[] dates = DateRecommender.recommend(attendance, LocalDate.now());
+            DateRecommendation[] dates = DateRecommender.recommend(attendance, AppDate.today());
             for (DateRecommendation date : dates) if (planDateAvailable(date.getDate()))
                 model(dateTable).addRow(new Object[] {dateTable.getRowCount() + 1, date.getDate(), date.getAttendance() + "/" + members.length});
             recommendationNotice.setText(dateTable.getRowCount() == 0 ? "새로 확정할 수 있는 날짜가 없습니다. 미응답·이미 확정된 날짜는 제외됩니다."
@@ -746,7 +746,7 @@ public final class DesktopUI extends JFrame {
                 .thenComparingInt(ConfirmedPlan::id));
             for (ConfirmedPlan entry : orderedPlans) {
                 RehearsalPlan plan = entry.plan();
-                if (plan.getDate().isBefore(LocalDate.now()) != showPastPlans) continue;
+                if (plan.getDate().isBefore(AppDate.today()) != showPastPlans) continue;
                 if (entry.id() == selectedId) selectedPlanRow = plansTable.getRowCount();
                 model(plansTable).addRow(new Object[] {entry.id(), plan.getDate(), plan.getLocation().isEmpty() ? "미정" : plan.getLocation(),
                     plan.getAttendees().length + "/" + (plan.getAttendees().length + plan.getAbsentees().length), plan.getSongs().length});
