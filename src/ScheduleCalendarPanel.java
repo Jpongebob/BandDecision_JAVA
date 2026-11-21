@@ -166,8 +166,8 @@ public final class ScheduleCalendarPanel extends JPanel {
         footer.add(action("선택 해제", this::clearSelection), BorderLayout.EAST);
         footer.add(selectionInfo, BorderLayout.CENTER);
         JPanel legend = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 9, 0)); legend.setOpaque(false);
-        legend.add(legendItem("●", new Color(45, 97, 235), "내 가능"));
-        legend.add(legendItem("●", new Color(190, 62, 54), "내 불가"));
+        legend.add(legendItem("●", new Color(45, 97, 235), "가능"));
+        legend.add(legendItem("●", new Color(190, 62, 54), "불가"));
         legend.add(legendItem("●", new Color(18, 112, 91), "전원 가능"));
         legend.add(legendItem("●", new Color(119, 73, 170), "합주 확정"));
         legend.add(legendItem("✓", UiTheme.ACCENT, "적용할 날짜"));
