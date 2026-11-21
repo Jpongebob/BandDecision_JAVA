@@ -315,6 +315,7 @@ public final class GuiSmokeTest {
     private static void renderWorkspace(Path directory) {
         LocalDate today = LocalDate.now();
         BandDecision demo = DemoData.create(today);
+        demo.getSongs().find(1).setDifficulty(0, 0);
         LocalDate rehearsal = today.plusDays(4);
         RehearsalPlan approved = demo.preview(rehearsal, new int[] {1, 2}, today);
         demo.confirm(rehearsal, new int[] {1, 2}, today, approved, false);
@@ -346,6 +347,10 @@ public final class GuiSmokeTest {
                 && find(workspace.page(WorkspaceView.Page.SETTINGS), JButton.class, "선택 멤버 삭제") != null,
                 "멤버 추가·수정·삭제 화면 제공");
             frame.addMember("민수", "기타", 2);
+            app.getSongs().find(1).setDifficulty(0, 0); frame.refresh();
+            check(hasLabel(workspace.page(WorkspaceView.Page.SONGS), "남성 보컬  연주 안 함"), "0 난이도를 별 대신 연주 안 함으로 표시");
+            app.getSongs().find(1).setDifficulty(0, 2); frame.refresh();
+            check(hasLabel(workspace.page(WorkspaceView.Page.SONGS), "남성 보컬  ★★☆☆☆"), "다시 연주하면 난이도 별 표시 복원");
             ScheduleCalendarPanel calendar = find(frame, ScheduleCalendarPanel.class, null);
             JTable responses = find(calendar, JTable.class, "파트");
             JTable votes = find(workspace.page(WorkspaceView.Page.SONGS), JTable.class, "파트");

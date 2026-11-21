@@ -236,7 +236,10 @@ public final class DesktopUI extends JFrame {
             JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION;
     }
     private static JSpinner rating() {
-        JSpinner spinner = new JSpinner(new SpinnerNumberModel(3, 1, 5, 1));
+        return rating(1);
+    }
+    private static JSpinner rating(int minimum) {
+        JSpinner spinner = new JSpinner(new SpinnerNumberModel(3, minimum, 5, 1));
         spinner.setPreferredSize(new Dimension(88, 44));
         spinner.setBorder(new UiTheme.RoundedBorder(UiTheme.LINE));
         return spinner;
@@ -245,6 +248,11 @@ public final class DesktopUI extends JFrame {
         try { spinner.commitEdit(); }
         catch (java.text.ParseException e) { throw new IllegalArgumentException("등급은 1~5 정수로 입력하세요."); }
         int value = ((Number) spinner.getValue()).intValue(); Member.validateRating(value); return value;
+    }
+    private static int difficultyValue(JSpinner spinner) {
+        try { spinner.commitEdit(); }
+        catch (java.text.ParseException e) { throw new IllegalArgumentException("곡 난이도는 0~5 정수로 입력하세요. 0은 연주 안 함입니다."); }
+        int value = ((Number) spinner.getValue()).intValue(); Song.validateDifficulty(value); return value;
     }
     private int selectedRow(JTable table, String message) {
         int selected = table.getSelectedRow();
@@ -421,13 +429,15 @@ public final class DesktopUI extends JFrame {
         JPanel form = new JPanel(new GridLayout(0, 2, 10, 10));
         form.add(new JLabel("제목 *")); form.add(title); form.add(new JLabel("아티스트 *")); form.add(artist);
         for (int i = 0; i < members.length; i++) {
-            difficulties[i] = rating(); if (editing != null) difficulties[i].setValue(editing.getDifficulty(i));
-            form.add(new JLabel(members[i].displayName() + " 난이도 *")); form.add(difficulties[i]);
+            difficulties[i] = rating(0); if (editing != null) difficulties[i].setValue(editing.getDifficulty(i));
+            difficulties[i].setToolTipText("0: 연주 안 함 · 1~5: 연주 난이도");
+            form.add(new JLabel(members[i].displayName() + " 난이도 (0~5) *")); form.add(difficulties[i]);
         }
+        form.add(new JLabel("0 = 연주 안 함")); form.add(new JLabel("투표는 모든 멤버가 참여합니다."));
         while (JOptionPane.showConfirmDialog(this, form, editing == null ? "새 후보곡 등록" : "후보곡 수정 · 기존 투표 유지",
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
             try {
-                int[] values = new int[members.length]; for (int i = 0; i < members.length; i++) values[i] = ratingValue(difficulties[i]);
+                int[] values = new int[members.length]; for (int i = 0; i < members.length; i++) values[i] = difficultyValue(difficulties[i]);
                 if (editing == null) selectedSongId = songs.register(title.getText(), artist.getText(), values).getId();
                 else songs.update(editing.getId(), title.getText(), artist.getText(), values);
                 changed(); return;
@@ -481,7 +491,8 @@ public final class DesktopUI extends JFrame {
         JTable resultTable = table("제목", "찬성", "반대", "미응답", "추천 상태");
         for (Song song : songs.voteResults()) model(resultTable).addRow(new Object[] {song.getTitle(),
             song.count(Song.YES), song.count(Song.NO), song.count(Song.UNANSWERED),
-            song.eligible() ? "추천 가능" : song.count(Song.UNANSWERED) > 0 ? "투표 미완료" : "찬성 부족"});
+            song.eligible() ? "추천 가능" : song.count(Song.UNANSWERED) > 0 ? "투표 미완료"
+                : song.count(Song.YES) < (members.length * 2 + 2) / 3 ? "찬성 부족" : "연주 파트 없음"});
         resultTable.getColumnModel().getColumn(0).setPreferredWidth(260);
         resultTable.getColumnModel().getColumn(4).setPreferredWidth(150);
         content.add(UiTheme.scroll(resultTable), BorderLayout.CENTER);
@@ -509,7 +520,7 @@ public final class DesktopUI extends JFrame {
             }
             Song song = selectedVoteSong(); selectedSongTitle.setText(song.getTitle() + " · " + song.getArtist());
             selectedSongTitle.setToolTipText(song.getTitle() + " — " + song.getArtist());
-            for (int i = 0; i < members.length; i++) difficultyLabels[i].setText(members[i].displayName() + "  " + Member.stars(song.getDifficulty(i)));
+            for (int i = 0; i < members.length; i++) difficultyLabels[i].setText(members[i].displayName() + "  " + Song.difficultyLabel(song.getDifficulty(i)));
             voteSummary.setText("찬성 " + song.count(Song.YES) + " · 반대 " + song.count(Song.NO) + " · 미응답 " + song.count(Song.UNANSWERED));
             for (int i = 0; i < members.length; i++) model(voteTable).addRow(new Object[] {members[i].displayName(),
                 song.getVote(i) == Song.YES ? "찬성" : song.getVote(i) == Song.NO ? "반대" : "미응답", song.getReason(i)});

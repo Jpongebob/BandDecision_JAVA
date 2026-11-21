@@ -527,6 +527,38 @@ public final class AcceptanceTest {
         } finally { Files.deleteIfExists(directory.resolve("location.properties"));
             Files.deleteIfExists(directory.resolve("old-v3.properties")); Files.delete(directory); }
     }
+    private static void nonPerformingPart() throws Exception {
+        BandDecision app = new BandDecision();
+        Song song = app.getSongs().register("여성 보컬 곡", "밴드", new int[] {0,3,2,1,2,3});
+        check(song.getDifficulty(0) == 0 && Song.difficultyLabel(0).equals("연주 안 함"), "난이도 0 등록·연주 안 함 표시");
+        for (int i=0;i<5;i++) song.vote(i, Song.YES, "");
+        check(!song.eligible(), "연주 안 함이어도 전원 투표 조건 유지");
+        song.vote(5, Song.YES, "");
+        SongRecommendation score = new SongRecommendation(song, app.getMembers());
+        check(song.eligible() && score.getBurdens()[0] == 0 && score.getTotalBurden() == 0 && score.getScore() == 18,
+            "0 난이도 부담은 0·추천 점수 정상 계산");
+        song.setDifficulty(0, 2); song.setDifficulty(0, 0);
+        check(song.getDifficulty(0) == 0 && song.count(Song.YES) == 6, "연주 참여·미참여 전환 후 투표 유지");
+        rejects(() -> song.setDifficulty(0, -1), "음수 곡 난이도 거부");
+        rejects(() -> song.setDifficulty(0, 6), "6 이상 곡 난이도 거부");
+        check(song.getDifficulty(0) == 0, "잘못된 난이도 입력 후 기존 0 유지");
+        rejects(() -> app.getSongs().update(song.getId(), "변경 제목", "변경 가수", new int[] {-1,1,1,1,1,1}),
+            "잘못된 전체 수정 거부");
+        check(song.getTitle().equals("여성 보컬 곡") && song.getDifficulty(0) == 0, "실패한 전체 수정에서 제목과 난이도 보존");
+        Song empty = app.getSongs().register("연주자 없음", "밴드", new int[] {0,0,0,0,0,0});
+        for (int i=0;i<6;i++) empty.vote(i, Song.YES, "");
+        check(!empty.eligible(), "전원이 연주 안 함이면 추천 제외");
+        empty.setDifficulty(1, 1);
+        check(empty.eligible(), "한 명 이상 연주하면 기존 투표 조건으로 추천");
+        Path folder = Files.createTempDirectory("banddecision-zero-difficulty-");
+        Path file = folder.resolve("songs.properties");
+        try {
+            DataStore store = new DataStore(file); store.save(app); BandDecision loaded = store.load();
+            check(loaded.getSongs().find(song.getId()).getDifficulty(0) == 0
+                && loaded.getSongs().find(song.getId()).count(Song.YES) == 6,
+                "연주 안 함과 투표 저장 복원");
+        } finally { Files.deleteIfExists(file); Files.delete(folder); }
+    }
     public static void main(String[] args) throws Exception {
         for (LocalDate today : new LocalDate[] {LocalDate.now(), LocalDate.of(2026, 12, 31), LocalDate.of(2028, 2, 29)}) {
             BandDecision demo = DemoData.createPresentation(today);
@@ -542,7 +574,7 @@ public final class AcceptanceTest {
                 "발표 샘플 추천 자격 곡 4개: " + today);
         }
         songs(); attendance(); plans(); persistence();
-        songManagement(); planManagement(); dynamicMembers(); memberLimit(); smallBands(); planLocation();
+        songManagement(); planManagement(); dynamicMembers(); memberLimit(); smallBands(); planLocation(); nonPerformingPart();
         System.out.println("PASS: " + checks + " checks (scheduling + songs + persistence)");
     }
 }

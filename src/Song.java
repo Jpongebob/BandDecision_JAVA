@@ -16,7 +16,14 @@ public final class Song {
         if (title == null || title.isBlank() || artist == null || artist.isBlank())
             throw new IllegalArgumentException("제목과 아티스트는 필수입니다.");
         if (difficulties == null || difficulties.length == 0) throw new IllegalArgumentException("멤버별 난이도가 필요합니다.");
-        for (int value : difficulties) Member.validateRating(value);
+        for (int value : difficulties) validateDifficulty(value);
+    }
+    public static void validateDifficulty(int value) {
+        if (value < 0 || value > 5) throw new IllegalArgumentException("곡 난이도는 0~5 정수여야 합니다. 0은 연주 안 함입니다.");
+    }
+    public static String difficultyLabel(int value) {
+        validateDifficulty(value);
+        return value == 0 ? "연주 안 함" : Member.stars(value);
     }
     public void updateDetails(String title, String artist, int[] difficulties) {
         validateDetails(title, artist, difficulties);
@@ -52,7 +59,7 @@ public final class Song {
     public String getTitle() { return title; }
     public String getArtist() { return artist; }
     public int getDifficulty(int part) { check(part); return difficulties[part]; }
-    public void setDifficulty(int part, int value) { check(part); Member.validateRating(value); difficulties[part] = value; }
+    public void setDifficulty(int part, int value) { check(part); validateDifficulty(value); difficulties[part] = value; }
     public int getVote(int part) { check(part); return votes[part]; }
     public String getReason(int part) { check(part); return reasons[part]; }
     public void vote(int part, int choice, String reason) {
@@ -64,8 +71,12 @@ public final class Song {
     }
     public int count(int choice) { int n = 0; for (int vote : votes) if (vote == choice) n++; return n; }
     public boolean eligible() {
-        for (int value : difficulties) if (value < 1 || value > 5) return false;
-        return count(UNANSWERED) == 0 && count(YES) >= (votes.length * 2 + 2) / 3;
+        boolean hasPerformer = false;
+        for (int value : difficulties) {
+            if (value < 0 || value > 5) return false;
+            if (value > 0) hasPerformer = true;
+        }
+        return hasPerformer && count(UNANSWERED) == 0 && count(YES) >= (votes.length * 2 + 2) / 3;
     }
     public String label() { return "[ID " + id + "] " + title + " — " + artist; }
 }
