@@ -631,7 +631,7 @@ public final class GuiSmokeTest {
                     modelAnswer(schedules, "가능", 0, 1); frame.refresh();
                     check(dates.getRowCount() == 7, "응답 완료 후 GUI 추천 복원");
                     modelAnswer(schedules, "불가", 0, 1);
-                    check(calendar.statusFor(firstDay).equals("가능 5/6명") && schedules.isCellEditable(0, 2), "부분 가능 표시와 불가 사유 편집 활성화");
+                    check(calendar.statusFor(firstDay).equals("참석 가능 5/6명") && schedules.isCellEditable(0, 2), "전체 참석 가능 인원 표시와 불가 사유 편집 활성화");
                     modelAnswer(schedules, "개인 일정", 0, 2);
                     check(app.getAttendance().reason(0, firstDay).equals("개인 일정"), "불가 사유 직접 수정");
                     modelAnswer(schedules, "", 0, 2);

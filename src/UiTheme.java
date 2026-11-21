@@ -178,18 +178,21 @@ public final class UiTheme {
                 }
                 String number = String.valueOf(button.getClientProperty("calendar.number"));
                 String status = String.valueOf(button.getClientProperty("calendar.status"));
+                String[] statusLines = status.startsWith("참석 가능 ")
+                    ? new String[] {"참석 가능", status.substring("참석 가능 ".length())}
+                    : status.isEmpty() ? new String[0] : new String[] {status};
                 Font numberFont = button.getFont().deriveFont(Font.BOLD);
                 Font statusFont = button.getFont().deriveFont(Font.PLAIN, Math.max(11f, button.getFont().getSize2D() * 0.72f));
-                int totalHeight = g.getFontMetrics(numberFont).getHeight() + (status.isEmpty() ? 0 : g.getFontMetrics(statusFont).getHeight());
+                int totalHeight = g.getFontMetrics(numberFont).getHeight() + statusLines.length * g.getFontMetrics(statusFont).getHeight();
                 int y = Math.max(3, (h - totalHeight) / 2);
                 g.setFont(numberFont); g.setColor(Color.BLACK);
                 y += g.getFontMetrics().getAscent();
                 g.drawString(number, (w - g.getFontMetrics().stringWidth(number)) / 2, y);
-                if (!status.isEmpty()) {
+                for (String line : statusLines) {
                     y += g.getFontMetrics().getDescent(); g.setFont(statusFont);
                     g.setColor(Color.BLACK);
                     y += g.getFontMetrics().getAscent();
-                    g.drawString(status, (w - g.getFontMetrics().stringWidth(status)) / 2, y);
+                    g.drawString(line, (w - g.getFontMetrics().stringWidth(line)) / 2, y);
                 }
                 if (selected) {
                     int size = Math.max(12, Math.round(button.getFont().getSize2D() * 0.75f));

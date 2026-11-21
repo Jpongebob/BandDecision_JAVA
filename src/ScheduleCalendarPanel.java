@@ -344,7 +344,7 @@ public final class ScheduleCalendarPanel extends JPanel {
         int pending = attendance.count(date, AttendanceService.UNANSWERED);
         if (pending > 0) return pending == members.length ? "미응답" : "대기 " + pending + "명";
         int available = attendance.count(date, AttendanceService.AVAILABLE);
-        return available == members.length ? "합주 가능" : "가능 " + available + "/" + members.length + "명";
+        return available == members.length ? "합주 가능" : "참석 가능 " + available + "/" + members.length + "명";
     }
     public void setMembers(Member[] members) {
         this.members = members;
