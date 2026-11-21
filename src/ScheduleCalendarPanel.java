@@ -132,10 +132,10 @@ public final class ScheduleCalendarPanel extends JPanel {
         bulkReason.setToolTipText("불가 사유: 비우면 기존 사유를 유지하고 새 불가는 기본 문구를 사용합니다.");
         JPanel bulkFields = new JPanel(new GridLayout(0, 1, 0, 4)); bulkFields.setOpaque(false);
         JPanel memberField = new JPanel(new BorderLayout(10, 0)); memberField.setOpaque(false);
-        memberField.add(new JLabel("응답할 멤버"), BorderLayout.WEST);
+        memberField.add(new JLabel("응답할 멤버 *"), BorderLayout.WEST);
         if (memberSelector == null) memberField.add(bulkMember, BorderLayout.CENTER);
         JPanel reasonField = new JPanel(new BorderLayout(10, 0)); reasonField.setOpaque(false);
-        reasonField.add(new JLabel("불가 사유(선택)"), BorderLayout.WEST); reasonField.add(bulkReason, BorderLayout.CENTER);
+        reasonField.add(new JLabel("불가 사유 (선택)"), BorderLayout.WEST); reasonField.add(bulkReason, BorderLayout.CENTER);
         if (memberSelector == null) bulkFields.add(memberField);
         bulkFields.add(reasonField);
         JPanel apply = new JPanel(new GridLayout(1, 3, 5, 0)); apply.setOpaque(false);
@@ -278,7 +278,7 @@ public final class ScheduleCalendarPanel extends JPanel {
         return button;
     }
     private JTable responseTable() {
-        DefaultTableModel model = new DefaultTableModel(new String[] {"파트", "응답", "불가 사유"}, 0) {
+        DefaultTableModel model = new DefaultTableModel(new String[] {"파트", "응답", "불가 사유 (선택)"}, 0) {
             private static final long serialVersionUID = 1L;
             @Override public boolean isCellEditable(int row, int column) {
                 return inWindow(selectedDate) && (column == 1 || column == 2 && attendance.response(row, selectedDate) == AttendanceService.UNAVAILABLE);

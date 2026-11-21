@@ -386,7 +386,7 @@ public final class GuiSmokeTest {
             find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "예정된 계획").doClick();
             check(plans.getRowCount() == 1 && plans.getModel().getValueAt(0, 0).equals(2), "예정된 계획으로 다시 전환");
             check(find(workspace.page(WorkspaceView.Page.PLANS), javax.swing.JTextField.class, null) != null
-                && hasLabel(workspace.page(WorkspaceView.Page.PLANS), "합주 장소"), "계획 작성 화면의 장소 입력란");
+                && hasLabel(workspace.page(WorkspaceView.Page.PLANS), "합주 장소 (선택)"), "계획 작성 화면의 선택 장소 입력란");
             plans.setRowSelectionInterval(0, 0);
             find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택 계획 수정").doClick();
             check("합주실 A".equals(find(workspace.page(WorkspaceView.Page.PLANS), javax.swing.JTextField.class, null).getText()),

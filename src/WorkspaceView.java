@@ -40,7 +40,7 @@ public final class WorkspaceView extends JPanel {
         brand.add(title); brand.add(subtitle); brand.setBorder(BorderFactory.createEmptyBorder(12, 10, 18, 0));
         JPanel memberPanel = new JPanel(new BorderLayout(0, 7)); memberPanel.setOpaque(false);
         memberPanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
-        JLabel memberLabel = new JLabel("입력할 멤버"); memberLabel.setLabelFor(memberSelector);
+        JLabel memberLabel = new JLabel("입력할 멤버 *"); memberLabel.setLabelFor(memberSelector);
         memberLabel.setForeground(UiTheme.MUTED);
         memberPanel.add(memberLabel, BorderLayout.NORTH);
         memberPanel.add(memberSelector, BorderLayout.CENTER);
@@ -55,7 +55,7 @@ public final class WorkspaceView extends JPanel {
         addLink(mainLinks, Page.PLANS, "합주 계획");
         sidebar.add(mainLinks, BorderLayout.CENTER);
         JPanel bottom = new JPanel(new BorderLayout(0, 12)); bottom.setOpaque(false);
-        JLabel tip = new JLabel("<html>함께 맞추고<br>함께 연주해요.</html>"); tip.setForeground(UiTheme.MUTED);
+        JLabel tip = new JLabel("<html>* 필수 입력<br>(선택) 생략 가능</html>"); tip.setForeground(UiTheme.MUTED);
         bottom.add(tip, BorderLayout.NORTH);
         addLink(bottom, Page.SETTINGS, "밴드 설정");
         sidebar.add(bottom, BorderLayout.SOUTH);
