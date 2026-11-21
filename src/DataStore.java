@@ -27,7 +27,8 @@ public final class DataStore {
             if (!version.equals("1") && !version.equals("2") && !version.equals("3")) throw new IllegalArgumentException("지원하지 않는 저장 파일 버전입니다.");
             BandDecision app = new BandDecision();
             int memberCount = p.getProperty("members") == null ? 6 : count(p, "members");
-            if (memberCount < 1 || memberCount > 64) throw new IllegalArgumentException("멤버 수가 올바르지 않습니다.");
+            if (memberCount < 1 || memberCount > BandDecision.MAX_MEMBERS)
+                throw new IllegalArgumentException("멤버 수는 1~" + BandDecision.MAX_MEMBERS + "명이어야 합니다.");
             for (int i = 6; i > memberCount; i--) app.removeMember(i - 1);
             for (int i = 0; i < memberCount; i++) {
                 String key = "member." + i + ".";
@@ -142,7 +143,9 @@ public final class DataStore {
         }
         Path temp = Files.createTempFile(file.getParent(), "banddecision-", ".tmp");
         try {
-            try (Writer writer = Files.newBufferedWriter(temp, StandardCharsets.UTF_8)) { p.store(writer, "BandDecision data v3 - up to five confirmed plans"); }
+            try (Writer writer = Files.newBufferedWriter(temp, StandardCharsets.UTF_8)) {
+                p.store(writer, "BandDecision data v3 - up to " + BandDecision.MAX_PLANS + " confirmed plans");
+            }
             try { Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE); }
             catch (AtomicMoveNotSupportedException e) { Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING); }
         } finally { Files.deleteIfExists(temp); }

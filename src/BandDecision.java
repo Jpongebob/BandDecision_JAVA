@@ -10,6 +10,7 @@ public final class BandDecision {
     private final AttendanceService attendance = new AttendanceService();
     private final SongService songs = new SongService();
     public static final int MAX_PLANS = 10;
+    public static final int MAX_MEMBERS = 12;
     private ConfirmedPlan[] confirmedPlans = new ConfirmedPlan[0];
     private int nextPlanId = 1;
     public Member[] getMembers() { return members.clone(); }
@@ -17,7 +18,7 @@ public final class BandDecision {
         addMember("", part, skill);
     }
     public void addMember(String name, String part, int skill) {
-        if (members.length >= 64) throw new IllegalArgumentException("멤버는 최대 64명까지 추가할 수 있습니다.");
+        if (members.length >= MAX_MEMBERS) throw new IllegalArgumentException("멤버는 최대 " + MAX_MEMBERS + "명까지 추가할 수 있습니다.");
         Member added = new Member(name, part, skill);
         attendance.addMember();
         songs.addMember();

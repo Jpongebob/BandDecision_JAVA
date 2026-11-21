@@ -396,6 +396,41 @@ public final class AcceptanceTest {
                 "7명 파트·투표·일정 저장 후 복원");
         } finally { Files.deleteIfExists(directory.resolve("members.properties")); Files.delete(directory); }
     }
+    private static void memberLimit() throws Exception {
+        BandDecision app = new BandDecision();
+        LocalDate day = LocalDate.now().plusDays(1);
+        Song song = app.getSongs().register("12명 검사", "밴드", low());
+        while (app.getMembers().length < 12) app.addMember("추가 멤버", "기타", 3);
+        check(app.getMembers().length == 12 && app.getAttendance().getMemberCount() == 12
+            && song.getDifficulty(11) == 3 && song.count(Song.UNANSWERED) == 12, "12명 허용·응답과 난이도 배열 동기화");
+        rejects(() -> app.addMember("13번째", "기타", 2), "13번째 멤버 추가 거부");
+        check(app.getMembers().length == 12 && app.getAttendance().getMemberCount() == 12
+            && song.getDifficulty(11) == 3 && song.count(Song.UNANSWERED) == 12, "상한 초과 실패 시 기존 배열 보존");
+        for (int i = 0; i < 12; i++) {
+            app.getAttendance().respond(i, day, AttendanceService.AVAILABLE, "");
+            song.vote(i, i < 7 ? Song.YES : Song.NO, "연습 부족");
+        }
+        check(DateRecommender.recommend(app.getAttendance(), LocalDate.now())[0].getAttendance() == 12,
+            "12명 전원 응답 날짜 추천");
+        check(!song.eligible(), "12명 중 찬성 7명은 추천 제외");
+        song.vote(7, Song.YES, "");
+        check(song.eligible(), "12명 중 찬성 8명은 추천 허용");
+        Path directory = Files.createTempDirectory("banddecision-limit-");
+        Path file = directory.resolve("members.properties");
+        try {
+            DataStore store = new DataStore(file); store.save(app);
+            BandDecision restored = store.load();
+            check(restored.getMembers().length == 12 && restored.getAttendance().response(11, day) == AttendanceService.AVAILABLE
+                && restored.getSongs().find(song.getId()).count(Song.YES) == 8, "12명 일정·곡·투표 저장 복원");
+            Properties invalid = new Properties();
+            try (java.io.Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) { invalid.load(reader); }
+            invalid.setProperty("members", "13");
+            try (java.io.Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) { invalid.store(writer, "invalid member count"); }
+            byte[] original = Files.readAllBytes(file);
+            rejectsLoad(store, "13명 저장 파일 읽기 거부");
+            check(Arrays.equals(original, Files.readAllBytes(file)), "인원 초과 파일 거부 시 원본 보존");
+        } finally { Files.deleteIfExists(file); Files.delete(directory); }
+    }
     private static void smallBands() throws Exception {
         BandDecision app = new BandDecision();
         LocalDate day = LocalDate.now().plusDays(1);
@@ -507,7 +542,7 @@ public final class AcceptanceTest {
                 "발표 샘플 추천 자격 곡 4개: " + today);
         }
         songs(); attendance(); plans(); persistence();
-        songManagement(); planManagement(); dynamicMembers(); smallBands(); planLocation();
+        songManagement(); planManagement(); dynamicMembers(); memberLimit(); smallBands(); planLocation();
         System.out.println("PASS: " + checks + " checks (scheduling + songs + persistence)");
     }
 }

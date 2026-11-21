@@ -267,7 +267,7 @@ public final class DesktopUI extends JFrame {
     private void changed() { refresh(); save(); }
 
     private JPanel membersPanel() {
-        JPanel panel = page("멤버와 현재 실력", "멤버는 1~64명으로 관리합니다. 같은 파트를 여러 명이 맡아도 됩니다. 응답 상태는 오늘부터 다음 달 말일까지의 전체 날짜 기준입니다.");
+        JPanel panel = page("멤버와 현재 실력", "멤버는 1~" + BandDecision.MAX_MEMBERS + "명으로 관리합니다. 같은 파트를 여러 명이 맡아도 됩니다. 응답 상태는 오늘부터 다음 달 말일까지의 전체 날짜 기준입니다.");
         panel.add(UiTheme.scroll(memberTable), BorderLayout.CENTER);
         JSpinner skill = rating();
         memberTable.getSelectionModel().addListSelectionListener(e -> {

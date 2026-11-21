@@ -754,9 +754,12 @@ public final class GuiSmokeTest {
                         "확정 계획 날짜의 달력 표시·상세·툴팁");
                     check("합주 확정".equals(dayButton(calendar, original.getDates()[1]).getClientProperty("calendar.status"))
                         && dayButton(calendar, original.getDates()[1]).getBackground().equals(new java.awt.Color(235, 225, 252))
-                        && dayButton(calendar, firstDay).getBackground().equals(new java.awt.Color(235, 225, 252))
-                        && !Boolean.TRUE.equals(dayButton(calendar, original.getDates()[5]).getClientProperty("calendar.confirmed")),
+                        && dayButton(calendar, firstDay).getBackground().equals(new java.awt.Color(235, 225, 252)),
                         "확정 날짜는 개인 응답·전원 가능 여부와 관계없이 보라색으로 구분");
+                    calendar.selectDate(original.getDates()[5]);
+                    check(!Boolean.TRUE.equals(dayButton(calendar, original.getDates()[5]).getClientProperty("calendar.confirmed")),
+                        "다음 달의 미확정 날짜는 해당 달로 이동해 표시 확인");
+                    calendar.selectDate(firstDay);
                     JTable plans = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "날짜");
                     check(plans.getRowCount() == 5 && find(workspace.page(WorkspaceView.Page.PLANS), JButton.class, "선택한 날짜와 곡으로 계획 확정").isEnabled(),
                         "계획 5개 저장 후에도 10개 한도까지 새 합주 가능");
