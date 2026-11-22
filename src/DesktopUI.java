@@ -31,6 +31,7 @@ import javax.swing.table.DefaultTableModel;
 public final class DesktopUI extends JFrame {
     private static final long serialVersionUID = 1L;
     private static final Color NAVY = UiTheme.INK;
+    private static final Color SELECTED_ITEM = new Color(207, 224, 255);
     private final BandDecision app;
     private final DataStore store;
     private Member[] members;
@@ -370,6 +371,7 @@ public final class DesktopUI extends JFrame {
         return panel;
     }
     private JPanel songsPanel() {
+        songTable.setSelectionBackground(SELECTED_ITEM);
         JPanel panel = page("후보곡", "곡을 누르면 오른쪽에서 난이도와 투표를 확인해요.");
         songTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         for (int i = 0; i < songTable.getColumnCount(); i++) {
@@ -447,7 +449,7 @@ public final class DesktopUI extends JFrame {
     }
 
     private JPanel votesPanel() {
-        JPanel panel = page("난이도와 투표", "상단에서 선택한 멤버로 투표해요. 반대에는 사유를 적어주세요.");
+        JPanel panel = page("난이도와 투표", "왼쪽에서 선택한 멤버로 투표해요. 반대에는 사유를 적어주세요.");
         ((BorderLayout) panel.getLayout()).setVgap(8);
         JPanel details = new JPanel(new BorderLayout(0, 8)); details.setOpaque(false);
         JPanel songInfo = new JPanel(new BorderLayout(0, 8)); songInfo.setOpaque(false);
@@ -544,6 +546,7 @@ public final class DesktopUI extends JFrame {
         JPanel panel = page("추천을 확인하고 직접 확정하세요", "왼쪽에서 날짜를 고르고, 오른쪽에서 함께 연주할 곡을 체크하세요. 이미 확정된 날짜는 제외됩니다.");
         JPanel dates = new JPanel(new BorderLayout(0, 8));
         dateDetail.setMargin(new java.awt.Insets(5, 14, 5, 14));
+        dateTable.setSelectionBackground(SELECTED_ITEM);
         dateTable.setRowHeight(34);
         dates.add(new JLabel("날짜 선택 * · 가능 인원순, 동률은 빠른 날짜순"), BorderLayout.NORTH);
         dateTable.setPreferredScrollableViewportSize(new Dimension(360, dateTable.getRowHeight() * 4));
@@ -690,7 +693,7 @@ public final class DesktopUI extends JFrame {
     private void refreshScheduleStatus() {
         int selected = scheduleCalendar.getSelectedMember();
         boolean completed = attendance.isSubmitted(selected);
-        submittedValue.setText(completed ? "응답 완료" : "응답 미완료");
+        submittedValue.setText(completed ? "일정 응답 완료" : "일정 응답 미완료");
         scheduleOwner.setText(members[selected].displayName() + " · " + ScheduleWindow.label(AppDate.today()) + " 전체 날짜 기준");
         submittedValue.setToolTipText("오늘부터 다음 달 말일까지 모든 날짜에 가능/불가 응답하면 완료입니다.");
     }

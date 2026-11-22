@@ -124,12 +124,12 @@ public final class GuiSmokeTest {
             check(!app.getAttendance().isSubmitted(0), "이번 달만 응답하면 두 달 기간 완료 아님");
             calendar.showMonth(1); calendar.selectWholeMonth(); calendar.applySelected(0, AttendanceService.UNAVAILABLE, "여행");
             check(app.getAttendance().isSubmitted(0) && !app.getAttendance().isSubmitted(1)
-                && hasLabel(frame, "응답 완료") && hasLabel(frame, "남성 보컬 · " + ScheduleWindow.label(today) + " 전체 날짜 기준"),
+                && hasLabel(frame, "일정 응답 완료") && hasLabel(frame, "남성 보컬 · " + ScheduleWindow.label(today) + " 전체 날짜 기준"),
                 "기간 전체 응답 완료·대상과 고정 범위 표시");
             byte[] saved;
             try { saved = Files.readAllBytes(file); } catch (java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
             member.setSelectedIndex(1);
-            check(hasLabel(frame, "응답 미완료"), "선택 멤버 변경 시 미완료 표시");
+            check(hasLabel(frame, "일정 응답 미완료"), "선택 멤버 변경 시 미완료 표시");
             member.setSelectedIndex(0);
             try { check(java.util.Arrays.equals(saved, Files.readAllBytes(file)), "멤버 전환 자체는 저장하지 않음"); }
             catch (java.io.IOException e) { throw new java.io.UncheckedIOException(e); }
@@ -535,7 +535,7 @@ public final class GuiSmokeTest {
                     find(workspace, JButton.class, "저장 다시 시도").doClick();
                     check(Files.exists(file), "저장 다시 시도 버튼은 현재 파일 저장");
                     check(members.getRowCount() == 6 && members.getValueAt(3, 1).equals("★☆☆☆☆"), "초기 멤버 표시");
-                    check(members.getValueAt(0, 2).equals("응답 미완료") && hasLabel(frame, "응답 미완료")
+                    check(members.getValueAt(0, 2).equals("응답 미완료") && hasLabel(frame, "일정 응답 미완료")
                         && hasLabel(frame, "남성 보컬 · " + ScheduleWindow.label(LocalDate.now()) + " 전체 날짜 기준"), "샘플 일부 날짜만 응답한 상태와 전체 기간 표시");
                     members.setRowSelectionInterval(3, 3);
                     JSpinner skill = find(workspace.page(WorkspaceView.Page.SETTINGS), JSpinner.class, null);
@@ -548,15 +548,15 @@ public final class GuiSmokeTest {
                     LocalDate statusDay = LocalDate.now().plusDays(1);
                     app.getAttendance().respond(0, statusDay, AttendanceService.AVAILABLE, ""); frame.refresh();
                     check(!app.getAttendance().isSubmitted(0) && !app.getAttendance().isSubmitted(1)
-                        && hasLabel(frame, "응답 미완료"), "일부 날짜 추가 응답만으로 전체 기간 완료가 되지 않음");
+                        && hasLabel(frame, "일정 응답 미완료"), "일부 날짜 추가 응답만으로 전체 기간 완료가 되지 않음");
                     javax.swing.JComboBox<?> statusMember = findMemberCombo(calendar);
                     try {
                         byte[] beforeSwitch = Files.readAllBytes(file);
                         statusMember.setSelectedIndex(1);
-                        check(hasLabel(frame, "응답 미완료") && hasLabel(frame, "여성 보컬 · " + ScheduleWindow.label(LocalDate.now()) + " 전체 날짜 기준"),
+                        check(hasLabel(frame, "일정 응답 미완료") && hasLabel(frame, "여성 보컬 · " + ScheduleWindow.label(LocalDate.now()) + " 전체 날짜 기준"),
                             "멤버 전환 시 해당 멤버의 미완료 상태 즉시 갱신");
                         statusMember.setSelectedIndex(0);
-                        check(hasLabel(frame, "응답 미완료") && hasLabel(frame, "남성 보컬 · " + ScheduleWindow.label(LocalDate.now()) + " 전체 날짜 기준"),
+                        check(hasLabel(frame, "일정 응답 미완료") && hasLabel(frame, "남성 보컬 · " + ScheduleWindow.label(LocalDate.now()) + " 전체 날짜 기준"),
                             "원래 멤버로 돌아오면 해당 멤버 상태 복원");
                         check(java.util.Arrays.equals(beforeSwitch, Files.readAllBytes(file)), "멤버 선택 변경은 저장 데이터를 수정하지 않음");
                     } catch (java.io.IOException ex) { throw new java.io.UncheckedIOException(ex); }
@@ -629,7 +629,7 @@ public final class GuiSmokeTest {
                     modelAnswer(schedules, "미응답", 0, 1); frame.refresh();
                     check(app.getAttendance().response(0, firstDay) == 0 && dates.getRowCount() == 6
                         && calendar.statusFor(firstDay).equals("대기 1명"), "미응답 변경은 해당 날짜만 추천 제외·달력 대기 표시");
-                    check(members.getValueAt(0, 2).equals("응답 미완료") && hasLabel(frame, "응답 미완료"),
+                    check(members.getValueAt(0, 2).equals("응답 미완료") && hasLabel(frame, "일정 응답 미완료"),
                         "기록 날짜 중 미응답이 생기면 완료 표시 해제·다른 완료 날짜 추천 유지");
                     modelAnswer(schedules, "가능", 0, 1); frame.refresh();
                     check(dates.getRowCount() == 7, "응답 완료 후 GUI 추천 복원");
