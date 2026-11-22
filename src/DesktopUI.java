@@ -544,17 +544,17 @@ public final class DesktopUI extends JFrame {
         JPanel panel = page("추천을 확인하고 직접 확정하세요", "왼쪽에서 날짜를 고르고, 오른쪽에서 함께 연주할 곡을 체크하세요. 이미 확정된 날짜는 제외됩니다.");
         JPanel dates = new JPanel(new BorderLayout(0, 8));
         dateDetail.setMargin(new java.awt.Insets(5, 14, 5, 14));
-        dateTable.setRowHeight(44);
+        dateTable.setRowHeight(34);
         dates.add(new JLabel("날짜 선택 * · 가능 인원순, 동률은 빠른 날짜순"), BorderLayout.NORTH);
         dateTable.setPreferredScrollableViewportSize(new Dimension(360, dateTable.getRowHeight() * 4));
         JScrollPane dateList = UiTheme.scroll(dateTable);
         JScrollPane attendanceDetail = UiTheme.scroll(dateDetail);
-        dateList.setMinimumSize(new Dimension(0, 96));
+        dateList.setMinimumSize(new Dimension(0, 136));
         attendanceDetail.setMinimumSize(new Dimension(0, 166));
         JSplitPane dateSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, dateList, attendanceDetail);
         dateSplit.setBorder(null);
         dateSplit.setDividerSize(8);
-        dateSplit.setResizeWeight(0.20);
+        dateSplit.setResizeWeight(0.55);
         dates.add(dateSplit, BorderLayout.CENTER);
         JPanel recommended = new JPanel(new BorderLayout(0, 8));
         recommendationTable.setModel(new DefaultTableModel(new String[] {"선택", "순위", "제목", "아티스트", "찬성", "총 부담", "점수"}, 0) {
@@ -586,8 +586,7 @@ public final class DesktopUI extends JFrame {
         confirmButton.addActionListener(e -> perform(this::confirmPlan));
         UiTheme.styleButton(cancelPlanEdit, false);
         cancelPlanEdit.addActionListener(e -> { editingPlanId = -1; refresh(); showPlanList(); });
-        panel.add(stack(row(recommendationNotice), row(editingNotice),
-            row(new JLabel("합주 장소 (선택)"), planLocation),
+        panel.add(stack(row(new JLabel("합주 장소 (선택)"), planLocation, editingNotice, recommendationNotice),
             row(button("최신 데이터로 다시 추천", this::refresh), confirmButton, cancelPlanEdit)), BorderLayout.SOUTH);
         return panel;
     }
@@ -728,8 +727,9 @@ public final class DesktopUI extends JFrame {
             DateRecommendation[] dates = DateRecommender.recommend(attendance, AppDate.today());
             for (DateRecommendation date : dates) if (planDateAvailable(date.getDate()))
                 model(dateTable).addRow(new Object[] {dateTable.getRowCount() + 1, date.getDate(), date.getAttendance() + "/" + members.length});
-            recommendationNotice.setText(dateTable.getRowCount() == 0 ? "새로 확정할 수 있는 날짜가 없습니다. 미응답·이미 확정된 날짜는 제외됩니다."
-                : "추천 " + dateTable.getRowCount() + "개 · 미응답·확정 날짜 제외" + (editingPlanId >= 0 ? " · 수정 대상 날짜 유지" : ""));
+            recommendationNotice.setText(dateTable.getRowCount() == 0 ? "추천 날짜 없음"
+                : "추천 날짜 " + dateTable.getRowCount() + "개");
+            recommendationNotice.setToolTipText(editingPlanId < 0 ? "미응답·확정 날짜 제외" : "미응답·다른 계획의 확정 날짜 제외");
             model(recommendationTable).setRowCount(0);
             SongRecommendation[] recommended = SongRecommender.recommend(songs, members);
             currentRecommendations = recommended;
@@ -740,11 +740,11 @@ public final class DesktopUI extends JFrame {
             updatePlanSongCount();
             confirmButton.setText(editingPlanId < 0 ? "선택한 날짜와 곡으로 계획 확정" : "선택 계획 수정 확정");
             cancelPlanEdit.setVisible(editingPlanId >= 0);
-            editingNotice.setText(editingPlanId < 0 ? "확정 계획 " + app.getConfirmedPlans().length + "/" + BandDecision.MAX_PLANS + "개 · 새 계획 추가"
-                : app.findPlan(editingPlanId).plan().getDate() + " 합주 수정 중 · 날짜와 곡을 선택하세요.");
+            editingNotice.setText(editingPlanId < 0 ? "확정 계획 " + app.getConfirmedPlans().length + "/" + BandDecision.MAX_PLANS + "개"
+                : app.findPlan(editingPlanId).plan().getDate() + " 합주 수정 중");
             confirmButton.setEnabled(dateTable.getRowCount() > 0 && recommended.length > 0
                 && (editingPlanId >= 0 || app.getConfirmedPlans().length < BandDecision.MAX_PLANS));
-            if (recommended.length == 0) recommendationNotice.setText(recommendationNotice.getText() + " / 추천 자격을 충족하는 곡이 없습니다.");
+            if (recommended.length == 0) recommendationNotice.setText(recommendationNotice.getText() + " · 추천곡 없음");
             int oldRow = plansTable.getSelectedRow();
             int selectedId = oldRow < 0 ? -1 : (Integer) model(plansTable).getValueAt(oldRow, 0);
             upcomingPlansButton.setText(showPastPlans ? "예정된 계획" : "✓ 예정된 계획");
