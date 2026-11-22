@@ -16,6 +16,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
@@ -56,7 +57,7 @@ public final class DesktopUI extends JFrame {
     private final JTable dateTable = table("순위", "날짜", "참석 인원");
     private final JTable recommendationTable = table("선택", "순위", "제목", "아티스트", "찬성", "총 부담", "점수");
     private final JLabel selectedPlanSongs = new JLabel("선택한 곡 0개");
-    private final JTextArea dateDetail = textArea(5);
+    private final JTextArea dateDetail = textArea(7);
     private final JTextArea planDetail = textArea(14);
     private final JTable plansTable = table("계획 ID", "날짜", "장소", "참석", "곡 수");
     private final JTextField planLocation = new JTextField(22);
@@ -542,11 +543,19 @@ public final class DesktopUI extends JFrame {
     private JPanel recommendationsPanel() {
         JPanel panel = page("추천을 확인하고 직접 확정하세요", "왼쪽에서 날짜를 고르고, 오른쪽에서 함께 연주할 곡을 체크하세요. 이미 확정된 날짜는 제외됩니다.");
         JPanel dates = new JPanel(new BorderLayout(0, 8));
-        dateDetail.setRows(2); dateDetail.setMargin(new java.awt.Insets(9, 14, 9, 14));
+        dateDetail.setMargin(new java.awt.Insets(5, 14, 5, 14));
         dateTable.setRowHeight(44);
         dates.add(new JLabel("날짜 선택 * · 가능 인원순, 동률은 빠른 날짜순"), BorderLayout.NORTH);
-        dates.add(UiTheme.scroll(dateTable), BorderLayout.CENTER);
-        dates.add(UiTheme.scroll(dateDetail), BorderLayout.SOUTH);
+        dateTable.setPreferredScrollableViewportSize(new Dimension(360, dateTable.getRowHeight() * 4));
+        JScrollPane dateList = UiTheme.scroll(dateTable);
+        JScrollPane attendanceDetail = UiTheme.scroll(dateDetail);
+        dateList.setMinimumSize(new Dimension(0, 96));
+        attendanceDetail.setMinimumSize(new Dimension(0, 166));
+        JSplitPane dateSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, dateList, attendanceDetail);
+        dateSplit.setBorder(null);
+        dateSplit.setDividerSize(8);
+        dateSplit.setResizeWeight(0.20);
+        dates.add(dateSplit, BorderLayout.CENTER);
         JPanel recommended = new JPanel(new BorderLayout(0, 8));
         recommendationTable.setModel(new DefaultTableModel(new String[] {"선택", "순위", "제목", "아티스트", "찬성", "총 부담", "점수"}, 0) {
             private static final long serialVersionUID = 1L;

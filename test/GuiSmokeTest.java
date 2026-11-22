@@ -476,7 +476,10 @@ public final class GuiSmokeTest {
                 "Demo 예정 계획 분류도 고정 기준일 사용");
             if (renderImages) {
                 frame.addNotify(); frame.validate(); layoutAll(frame.getContentPane()); render(frame,"demo-fixed-calendar");
-                frame.showPlanBuilder(); frame.validate(); layoutAll(frame.getContentPane()); render(frame,"demo-fixed-builder");
+                frame.showPlanBuilder(); frame.validate(); layoutAll(frame.getContentPane());
+                JTable recommendedDates = find(workspace.page(WorkspaceView.Page.PLANS), JTable.class, "순위");
+                recommendedDates.setRowSelectionInterval(0, 0);
+                render(frame,"demo-fixed-builder");
             }
         } finally { if (frame != null) frame.dispose(); AppDate.configure(false); }
         check(AppDate.today().equals(LocalDate.now()), "고정 Demo UI 검사 후 일반 날짜 복귀");
